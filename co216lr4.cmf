@@ -1,0 +1,209 @@
+!
+! Auxiliary files (i.e., which model)
+! ---------------
+!
+Auxiliary files = c:\BMCROG\BMCROG ;
+!
+! Original Data files
+! -------------------
+!
+File MDATA = c:\BMCROG\MDATA_2018.HAR ; !  File containing input-output tables and other data for the CGE core module
+File PDATA = c:\BMCROG\PDATA_HRV.har ; !  File Containing population data
+File CDATA = c:\BMCROG\CDATA.HAR ; !  File containing CO2 data
+File Terminal = c:\BMCROG\Terminal.HAR ; !  Terminal file for FRED and PRIOD
+!
+! Output files
+! ------------
+!
+Solution file = co216lr4 ;
+Updated file MDATA = sim1.upd ;
+Updated file PDATA = sim1a.upd ;
+Updated file CDATA = sim1b.upd ;
+File DISFILE = sim1.ou1 ;
+Extrapolation Accuracy File = yes ;
+dpn = yes ;
+!
+! Closure
+! -------
+!
+!  Closure
+!
+! STANDARD LONG-RUN
+!
+! Section 3: THE CGE CORE MODULE
+!
+! Section 3.2: Variables and equations for the CGE core module
+!
+! Production !
+!
+! Subsection 3.2.1: Demands by industries for intermediate input users, User 1
+!
+exogenous f1oct;
+!
+! Subsection 3.2.2:  Primary factor demands, prices and supplies
+!
+exogenous a1 a1cap a3com a1labo a1prim interest a1s a2s;
+!
+! Subsection 3.2.3:  Demands by industries for capital creation, User 2
+!
+! Subsection 3.2.4:  Household demands for commodities, User 3
+!
+! Subsection 3.2.5:  Tax rates
+!
+exogenous deltax;
+!
+! Subsection 3.2.6: Purchasers prices of commodities
+!
+exogenous natphi;
+!
+! Subsection 3.2.7: Tax revenues
+!
+exogenous f5a;
+!
+! Subsection 3.2.8: Demands for exports
+!
+exogenous aggnt_feq aggnt_fep faggnt_i faggnt_s faggnt_p4r fep feq natfep faggnt_is;
+!
+! Subsection 3.2.9: Demands for commodities for regional gov. expenditure
+!
+exogenous natf5gen f5gen;
+!
+! Subsection 3.2.10: Demands for commodities for Federal gov. expenditure
+!
+exogenous f7a;
+!
+! Subsection 3.2.11: Margin usage of commodities !
+!
+exogenous a1marg_ij a2marg_ij a3marg_i a4marg_i a5marg_i a8marg_i amarg_i;
+!
+! Subsection 3.2.12: Supply equals demand for domestic & imported commodities
+!
+! Subsection 3.2.13: Basic prices
+!
+exogenous pm powtaxm;
+!
+! Subsection 3.2.14: Components of regional GDP, real and nominal
+!
+! Subsection 3.2.15: National GDP, real and nominnal, and its components
+!
+! Subsection 3.2.16: Regional and national price indices
+!
+! Subsection 3.2.17: Money wage settings
+!
+exogenous natfwage fwagei arpri util_diff 2-21;
+!
+! Subsection 3.2.18: Miscellaneous definitions of factor prices
+!
+! Subsection 3.2.19: Employment Aggregates
+!
+! Section 4: CAPITAL ACCUMULATION AND INVESTMENT MODULE !
+!
+! Subsection 4.1: Coefficient declarations for the capital accumulation and
+!investment module
+!
+! Subsection 4.2: Variables and equations for the capital accumulation and
+!investment module
+!
+exogenous delf_rate delkfudge natr_tot f_rate_xx;
+!
+exogenous c_shift f_util;
+!
+! Calculate GDP deflator in the core to substitute xiy_r
+!
+! Section 11: LABOR MARKET AND REGIONAL MIGRATION MODULE
+!
+exogenous delf_rm delf_rm_0 delpopfudget del_fgt 21 del_fm del_fmt del_fpop1t 21 del_g;
+exogenous del_gt 1-20 del_rmt0 1-20 delrpfudge del_unr f_l f_wpop f_pop f_qhous pr;
+!
+!CO2 MODULE
+!
+exogenous delCTXRATE fcarbon cgovdem;
+
+rest endogenous ;
+!
+! Verbal description
+! ------------------
+!
+Verbal Description =
+Carbon tax = 16.48 EUR LR4;
+!
+! Solution method
+! ---------------
+!
+Method = Euler;
+Steps = 1 2 4;
+subintervals = 10;
+!
+! Miscellaneous info
+! ------------------
+!
+automatic accuracy = no;
+!
+! Shocks
+! ------
+!
+ Shock delctxrate("IND_1",REGDEST) = uniform 0.0045;
+ Shock delctxrate("IND_2",REGDEST) = uniform 0.0046;
+ Shock delctxrate("IND_3",REGDEST) = uniform 0.0008;
+ Shock delctxrate("IND_4",REGDEST) = uniform 0.0177;
+ Shock delctxrate("IND_5",REGDEST) = uniform 0.0010;
+ Shock delctxrate("IND_6",REGDEST) = uniform 0.0003;
+ Shock delctxrate("IND_7",REGDEST) = uniform 0.0003;
+ Shock delctxrate("IND_8",REGDEST) = uniform 0.0014;
+ Shock delctxrate("IND_9",REGDEST) = uniform 0.0004;
+ Shock delctxrate("IND_10",REGDEST) = uniform 0.0090;
+ Shock delctxrate("IND_11",REGDEST) = uniform 0.0139;
+ Shock delctxrate("IND_12",REGDEST) = uniform 0.0002;
+ Shock delctxrate("IND_13",REGDEST) = uniform 0.0004;
+ Shock delctxrate("IND_14",REGDEST) = uniform 0.0239;
+ Shock delctxrate("IND_15",REGDEST) = uniform 0.0050;
+ Shock delctxrate("IND_16",REGDEST) = uniform 0.0004;
+ Shock delctxrate("IND_17",REGDEST) = uniform 0.0014;
+ Shock delctxrate("IND_18",REGDEST) = uniform 0.0004;
+ Shock delctxrate("IND_19",REGDEST) = uniform 0.0001;
+ Shock delctxrate("IND_20",REGDEST) = uniform 0.0004;
+ Shock delctxrate("IND_21",REGDEST) = uniform 0.0002;
+ Shock delctxrate("IND_22",REGDEST) = uniform 0.0007;
+ Shock delctxrate("IND_23",REGDEST) = uniform 0.0006;
+ Shock delctxrate("IND_24",REGDEST) = uniform 0.0147;
+ Shock delctxrate("IND_25",REGDEST) = uniform 0.0000;
+ Shock delctxrate("IND_26",REGDEST) = uniform 0.0000;
+ Shock delctxrate("IND_27",REGDEST) = uniform 0.0035;
+ Shock delctxrate("IND_28",REGDEST) = uniform 0.0020;
+ Shock delctxrate("IND_29",REGDEST) = uniform 0.0011;
+ Shock delctxrate("IND_30",REGDEST) = uniform 0.0002;
+ Shock delctxrate("IND_31",REGDEST) = uniform 0.0062;
+ Shock delctxrate("IND_32",REGDEST) = uniform 0.0083;
+ Shock delctxrate("IND_33",REGDEST) = uniform 0.0115;
+ Shock delctxrate("IND_34",REGDEST) = uniform 0.0004;
+ Shock delctxrate("IND_35",REGDEST) = uniform 0.0010;
+ Shock delctxrate("IND_36",REGDEST) = uniform 0.0002;
+ Shock delctxrate("IND_37",REGDEST) = uniform 0.0007;
+ Shock delctxrate("IND_38",REGDEST) = uniform 0.0013;
+ Shock delctxrate("IND_39",REGDEST) = uniform 0.0002;
+ Shock delctxrate("IND_40",REGDEST) = uniform 0.0001;
+ Shock delctxrate("IND_41",REGDEST) = uniform 0.0003;
+ Shock delctxrate("IND_42",REGDEST) = uniform 0.0003;
+ Shock delctxrate("IND_43",REGDEST) = uniform 0.0003;
+ Shock delctxrate("IND_44",REGDEST) = uniform 0.0005;
+ Shock delctxrate("IND_45",REGDEST) = uniform 0.0005;
+ Shock delctxrate("IND_46",REGDEST) = uniform 0.0004;
+ Shock delctxrate("IND_47",REGDEST) = uniform 0.0003;
+ Shock delctxrate("IND_48",REGDEST) = uniform 0.0004;
+ Shock delctxrate("IND_49",REGDEST) = uniform 0.0005;
+ Shock delctxrate("IND_50",REGDEST) = uniform 0.0028;
+ Shock delctxrate("IND_51",REGDEST) = uniform 0.0004;
+ Shock delctxrate("IND_52",REGDEST) = uniform 0.0017;
+ Shock delctxrate("IND_53",REGDEST) = uniform 0.0006;
+ Shock delctxrate("IND_54",REGDEST) = uniform 0.0011;
+ Shock delctxrate("IND_55",REGDEST) = uniform 0.0002;
+ Shock delctxrate("IND_56",REGDEST) = uniform 0.0005;
+ Shock delctxrate("IND_57",REGDEST) = uniform 0.0002;
+ Shock delctxrate("IND_58",REGDEST) = uniform 0.0021;
+ Shock delctxrate("IND_59",REGDEST) = uniform 0.0003;
+ Shock delctxrate("IND_60",REGDEST) = uniform 0.0002;
+ Shock delctxrate("IND_61",REGDEST) = uniform 0.0003;
+ Shock delctxrate("IND_62",REGDEST) = uniform 0.0041;
+ Shock delctxrate("IND_63",REGDEST) = uniform 0.0005;
+ Shock delctxrate("IND_64",REGDEST) = uniform 0.0251;
+ Shock delctxrate("IND_65",REGDEST) = uniform 0.0000;

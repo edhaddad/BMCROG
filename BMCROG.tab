@@ -1,0 +1,3528 @@
+! BMCRO Model: A 21-region interregional CGE model for Croatia , 2018
+
+This version: 27/11/2022
+
+By: Eduardo Haddad (USP)
+
+Research Team:
+
+Ademir Antonio Moreira Rocha
+Inacio Fernandes de Araujo Junior
+
+
+From: CEER.tab (Haddad et al., 2009) and BMBA.tab (Campos and Haddad, 2016)
+
+# of equations = XXX
+# of unknowns = XXX
+
+Condensed version
+
+# of equations = XXX
+# of unknowns = XXX (XXX omitted variables)
+
+Historical development: MONASH-MRF -> B-MARIA -> B-MARIA-27 (CEER) ->
+B-MARIA-27-COM -> B-MARIA2007 -> BMCORE -> BM27CORE -> BMRMSPCORE -> MMDERCORE
+-> BMBA -> OCPPC_ICGE -> BMGR -> BMCH -> BMMX -> BMBR -> BMMG -> RMRA_SP
+-> BMMANT3
+
+References:
+
+Peter, M., Horridge, M., Meagher, G. A., Naqvi, F. and Parmenter, B. R. (1996).
+The Theoretical Structure Of MONASH-MRF. Preliminary Working Paper no. OP-85,
+IMPACT Project, Monash University, Clayton, April.
+
+Haddad, E. A. (1999). Regional inequality and structural changes: lessons from
+the Brazilian experience. Aldershot, Ashgate.
+
+Haddad, E. A. (2004). Retornos crescentes, custos de transporte e crescimento
+regional. Tese de Livre-docÃªncia, FEA/USP.
+
+Campos, R. C. and Haddad (2016). AvaliaÃ§Ã£o dos impactos espaciais do Sistema
+Viario Oeste - Bahia: uma abordagem a partir da modelagem de equilibrio geral
+computavel. RBEE, v. 16, n. 2, pp. 25-47.
+
+This version includes the following modifications:
+
+Data:
+
+1) EUROSTAT database for the year 2018 (CRORANI)
+2) Croatian IIOS developed by NEREUS
+3) 65 sectors
+4) 65 commodities
+
+Specification:
+
+1) Focus on the core equations of the BMARIA model
+2) Consumption function based on wage income
+3) Government expenditure function based on tax revenue
+4) Introduction of a carbon tax module (production tax)
+5) Consolidated regional governments - regional expenditure = regional revenue
+
+!
+
+! Section 1: Database files to ALL modules !
+
+FILE MDATA
+# File containing input-output tables and other data for the CGE core module #;
+
+File PDATA # File Containing population data #;
+
+!(CMODULE) CO2 basedata!
+File CDATA # File containing CO2 data #;
+
+FILE (NEW,TEXT) DISFILE
+# Text output file for examining data base values #;
+
+File Terminal
+# Terminal file for FRED and PRIOD #;
+
+!File REGSETS # Sets file #;!
+
+! Section 2:  Set and subset names common to ALL modules !
+
+SET IND # Industries #
+read elements from file MDATA header "IND";
+
+SET COM # Commodities #
+read elements from file MDATA header "COM";
+
+SET MARGCOM # Margin commodities #
+read elements from file MDATA header "MAR";
+
+SUBSET MARGCOM is subset of COM;
+
+SET NONMARGCOM # Non-margin commodities #
+read elements from file MDATA header "NMAR";
+
+SUBSET NONMARGCOM is subset of COM;
+
+SET TEXP # Traditional exports #
+read elements from file MDATA header "TEX";
+
+SET NTEXP # Non-traditional exports #
+read elements from file MDATA header "NTX";
+
+SUBSET TEXP is subset of COM;
+
+SUBSET NTEXP is subset of COM;
+
+SET FAC # Primary factors # (labor,capital,land);
+
+SET OCC # Occupation types # SIZE 1;
+
+SET ALLDEST # Destination of goods #
+read elements from file MDATA header "ADST";
+
+SET DOMDEST # Destination of goods #
+read elements from file MDATA header "DDST";
+
+SET REGDEST # 21 regional destinations #
+read elements from file MDATA header "RDST";
+
+SUBSET DOMDEST is subset of ALLDEST;
+
+SUBSET REGDEST is subset of ALLDEST;
+
+SUBSET REGDEST is subset of DOMDEST;
+
+SET ALLSOURCE # Origin of goods #
+read elements from file MDATA header "ASRC";
+
+SET REGSOURCE # 21 regional sources #
+read elements from file MDATA header "RDST";
+
+SUBSET REGSOURCE is subset of ALLSOURCE;
+
+SET TWOSOURCE # Main sources # (domestic,foreign);
+
+SUBSET REGSOURCE is subset of REGDEST;
+
+SUBSET REGDEST is subset of REGSOURCE;
+
+! new !
+!SUBSET COM is subset of IND;
+
+SUBSET IND is subset of COM;!
+
+! new !
+SET ADRIATICDES # Adriatic regions #
+read elements from file MDATA header "ADDT";
+
+SET ADRIATICSRC # Adriatic sources #
+read elements from file MDATA header "ADSR";
+
+SUBSET ADRIATICDES is subset of REGDEST;
+
+SUBSET ADRIATICSRC is subset of REGDEST;
+
+SUBSET ADRIATICDES is subset of ADRIATICSRC;
+
+SUBSET ADRIATICSRC is subset of ADRIATICDES;
+
+! Section 3: THE CGE CORE MODULE !
+
+! Section 3.1: Coefficient declarations for the CGE core module !
+
+ZERODIVIDE OFF;
+
+! Subsection 3.1.1: Input-output database flows of goods !
+
+COEFFICIENT
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+BAS1(i,s,j,q);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+BAS2(i,s,j,q);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+BAS3(i,s,q);
+
+(all,i,COM)(all,s,REGSOURCE)
+BAS4(i,s);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+BAS5(i,s,q);
+
+(all,i,COM)(all,s,REGSOURCE)
+BAS7(i,s);
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+BAS8(i,s,q);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)(all,r,MARGCOM)
+MAR1(i,s,j,q,r);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)(all,r,MARGCOM)
+MAR2(i,s,j,q,r);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+MAR3(i,s,q,r);
+
+(all,i,COM)(all,s,REGSOURCE)(all,r,MARGCOM)
+MAR4(i,s,r);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+MAR5(i,s,q,r);
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+MAR8(i,s,q,r);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+TAX1(i,s,j,q);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+TAX2(i,s,j,q);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+TAX3(i,s,q);
+
+(all,i,COM)(all,s,REGSOURCE)
+TAX4(i,s);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+TAX5(i,s,q);
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+TAX8(i,s,q);
+
+READ
+
+BAS1 from file MDATA header "BAS1";
+
+BAS2 from file MDATA header "BAS2";
+
+BAS3 from file MDATA header "BAS3";
+
+BAS4 from file MDATA header "BAS4";
+
+BAS5 from file MDATA header "BAS5";
+
+BAS7 from file MDATA header "BAS7";
+
+! new !
+BAS8 from file MDATA header "BAS8";
+
+MAR1 from file MDATA header "MAR1";
+
+MAR2 from file MDATA header "MAR2";
+
+MAR3 from file MDATA header "MAR3";
+
+MAR4 from file MDATA header "MAR4";
+
+MAR5 from file MDATA header "MAR5";
+
+! new !
+MAR8 from file MDATA header "MAR8";
+
+TAX1 from file MDATA header "TAX1";
+
+TAX2 from file MDATA header "TAX2";
+
+TAX3 from file MDATA header "TAX3";
+
+TAX4 from file MDATA header "TAX4";
+
+TAX5 from file MDATA header "TAX5";
+
+! new !
+TAX8 from file MDATA header "TAX8";
+
+! Subsection 3.1.2: Input-output database flows of primary factors !
+
+COEFFICIENT
+
+(all,m,OCC)(all,j,IND)(all,q,REGDEST)
+LAB_OCC_IND(m,j,q) # Labor m in industry j #;
+
+(all,j,IND)(all,q,REGDEST)
+CAPITAL(j,q) # Total capital in industry j #;
+
+(all,j,IND)(all,q,REGDEST)
+LAND(j,q) # Total land use in industry j #;
+
+(all,j,IND)(all,q,REGDEST)
+OTHCOST(j,q) # Other cost tickets paid by industry j #;
+
+! New !
+(all,j,IND)(all,q,REGDEST)
+CTAX(j,q) # Production tax (CO2) paid by industry j #;
+
+! New !
+(all,j,IND)(all,q,REGDEST)
+CTXRATE(j,q) # Rate of CO2 tax #;
+
+READ
+
+LAB_OCC_IND from file MDATA header "LABR";
+
+CAPITAL from file MDATA header "CPTL";
+
+LAND from file MDATA header "LAND";
+
+OTHCOST from file MDATA header "OCTS";
+
+! New !
+CTAX from file MDATA header "CTAX";
+
+! Subsection 3.1.2b: Industry output mix !
+
+COEFFICIENT
+
+(all,i,COM)(all,j,IND)(all,s,REGSOURCE)
+MAKE(i,j,s) # Commodity outputs by industry #;
+
+! NEW !
+(all,j,IND)(all,s,REGSOURCE)
+MAKE_I(j,s) # Output by industry #;
+
+(all,i,COM)(all,s,REGSOURCE)
+MAKE_J(i,s) # Output by commodity #;
+
+READ
+
+MAKE from file MDATA header "MAKE";
+
+FORMULA
+
+! NEW !
+(all,j,IND)(all,s,REGSOURCE)
+MAKE_I(j,s)=sum(i,COM,MAKE(i,j,s));
+
+(all,i,COM)(all,s,REGSOURCE)
+MAKE_J(i,s)=sum(j,IND,MAKE(i,j,s));
+
+! Subsection 3.1.3: Input-output database flows of imports and tariffs !
+
+COEFFICIENT
+
+(all,i,COM)(all,q,REGDEST)
+IMPORTS(i,q) # Total basic-value imports of good i #;
+
+(all,i,COM)(all,q,REGDEST)
+TARIFF(i,q) # Tariffs #;
+
+(all,i,COM)
+NATIMPCOST(i) # Total ex-duty imports i #;
+
+(all,i,COM)
+NATTARIFF(i) # Tariff revenue #;
+
+READ
+
+TARIFF from file MDATA header "TARF";
+
+FORMULA
+
+(all,i,COM)(all,q,REGDEST)
+IMPORTS(i,q)=sum(j,IND,BAS1(i,"foreign",j,q)+BAS2(i,"foreign",j,q))
++BAS3(i,"foreign",q)+BAS5(i,"foreign",q)+BAS8(i,"foreign",q);
+
+(all,i,COM)
+NATTARIFF(i)=sum(q,REGDEST,TARIFF(i,q));
+
+! Subsection 3.1.4: Elasticites of substitution (Armingtons) and other
+parameters !
+
+COEFFICIENT
+
+(all,j,IND)(all,q,REGDEST)
+QCOEF(j,q) # Ratio, gross to net rate of return #;
+
+(PARAMETER)(all,i,COM)(all,s,REGSOURCE)
+EXP_ELAST(i,s) # Export demand elasticities #;
+
+(PARAMETER)(all,j,IND)(all,q,REGDEST)
+SIGMA1FAC(j,q) # CES substitution elasticities for primary factors #;
+
+(PARAMETER)(all,j,IND)(all,q,REGDEST)
+SIGMA1LAB(j,q) # CES substitution elasticities between labor types #;
+
+(PARAMETER)(all,i,COM)
+SIGMA1O(i) # Armington import/domestic elast. of subst.: intermediate #;
+
+(PARAMETER)(all,i,COM)
+SIGMA2O(i) # Armington import/domestic elast. of subst.: investment #;
+
+(PARAMETER)(all,i,COM)
+SIGMA3O(i) # Armington import/domestic elast. of subst.: households #;
+
+(PARAMETER)(all,j,IND)(all,q,REGDEST)
+BETA_R(j,q) # Parameter to distribute investment #;
+
+(PARAMETER)(all,i,COM)
+SIGMA1C(i) # Intra-domestic substitution elasticities: User 1 #;
+
+(PARAMETER)(all,i,COM)
+SIGMA2C(i) # Intra-domestic substitution elasticities: User 2 #;
+
+(PARAMETER)(all,i,COM)
+SIGMA3C(i) # Intra-domestic substitution elasticities: User 3 #;
+
+(PARAMETER)(all,j,IND)(all,q,REGDEST)
+MRP(j,q) # Parameter to returns to primary factors #;
+
+(PARAMETER)(all,j,IND)(all,q,REGDEST)
+MRL(j,q) # Parameter to returns to labor #;
+
+(PARAMETER)(all,j,IND)(all,q,REGDEST)
+MRK(j,q) # Parameter to returns to capital #;
+
+(PARAMETER)(all,j,IND)(all,q,REGDEST)
+MRN(j,q) # Parameter to returns to land #;
+
+! NEW !
+
+! Elasticity of transformation CET !
+
+(all,j,IND)(all,s,REGSOURCE)
+SIGMA1OUT(j,s) # CET transformation elasticities #;
+
+READ
+
+QCOEF from file MDATA header "p027";
+
+EXP_ELAST from file MDATA header "p018";
+
+SIGMA1FAC from file MDATA header "p028";
+
+SIGMA1LAB from file MDATA header "SLAB";
+
+SIGMA1O from file MDATA header "p015";
+
+SIGMA2O from file MDATA header "p016";
+
+SIGMA3O from file MDATA header "p017";
+
+BETA_R from file MDATA header "BETR";
+
+SIGMA1C from file MDATA header "b015";
+
+SIGMA2C from file MDATA header "b016";
+
+SIGMA3C from file MDATA header "b017";
+
+MRL from file MDATA header "MRL";
+
+MRP from file MDATA header "MRP";
+
+MRK from file MDATA header "MRK";
+
+MRN from file MDATA header "MRN";
+
+! NEW !
+
+SIGMA1OUT from file MDATA header "SCET";
+
+! Subsection 3.1.5: Purchasers' values !
+
+COEFFICIENT
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+PVAL1A(i,s,j,q) # Purchase value for current production #;
+
+(all,i,COM)(all,aa,TWOSOURCE)(all,j,IND)(all,q,REGDEST)
+PVAL1T(i,aa,j,q) # Total purchase value for current production: dom. & imp. #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+PVAL1O(i,j,q) # Total purchase value for current production: dom. & imp. #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+PVAL2A(i,s,j,q) # Purchase value for capital creation #;
+
+(all,i,COM)(all,aa,TWOSOURCE)(all,j,IND)(all,q,REGDEST)
+PVAL2T(i,aa,j,q) # Total purchase value for capital creation: dom. & imp. #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+PVAL2O(i,j,q) # Total purchase value for capital creation: dom. & imp. #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+PVAL3A(i,s,q) # Purchase value for household consumption #;
+
+(all,i,COM)(all,aa,TWOSOURCE)(all,q,REGDEST)
+PVAL3T(i,aa,q) # Total purchase value for household consumption: dom. & imp. #;
+
+(all,i,COM)(all,q,REGDEST)
+PVAL3O(i,q) # Total regional purchase value for household consumption #;
+
+(all,i,COM)(all,s,REGSOURCE)
+PVAL4R(i,s) # Purchase value for foreign exports #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+PVAL5A(i,s,q) # Purchase value for regional government demand #;
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+PVAL8A(i,s,q) # Purchase value for ISFLF demand #;
+
+FORMULA
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+PVAL1A(i,s,j,q)=BAS1(i,s,j,q)+TAX1(i,s,j,q)+sum(r,MARGCOM,MAR1(i,s,j,q,r));
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+PVAL1T(i,"domestic",j,q)=sum(s,REGSOURCE,PVAL1A(i,s,j,q));
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+PVAL1T(i,"foreign",j,q)=PVAL1A(i,"foreign",j,q);
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+PVAL1O(i,j,q)=sum(aa,TWOSOURCE,PVAL1T(i,aa,j,q));
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+PVAL2A(i,s,j,q)=BAS2(i,s,j,q)+TAX2(i,s,j,q)+sum(r,MARGCOM,MAR2(i,s,j,q,r));
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+PVAL2T(i,"domestic",j,q)=sum(s,REGSOURCE,PVAL2A(i,s,j,q));
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+PVAL2T(i,"foreign",j,q)= PVAL2A(i,"foreign",j,q);
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+PVAL2O(i,j,q)=sum(aa,TWOSOURCE,PVAL2T(i,aa,j,q));
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+PVAL3A(i,s,q)=BAS3(i,s,q)+TAX3(i,s,q)+sum(r,MARGCOM,MAR3(i,s,q,r));
+
+(all,i,COM)(all,q,REGDEST)
+PVAL3T(i,"domestic",q)=sum(s,REGSOURCE,PVAL3A(i,s,q));
+
+(all,i,COM)(all,q,REGDEST)
+PVAL3T(i,"foreign",q)= PVAL3A(i,"foreign",q);
+
+(all,i,COM)(all,q,REGDEST)
+PVAL3O(i,q)=sum(aa,TWOSOURCE,PVAL3T(i,aa,q));
+
+(all,i,COM)(all,s,REGSOURCE)
+PVAL4R(i,s)=BAS4(i,s)+TAX4(i,s)+sum(r,MARGCOM,MAR4(i,s,r));
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+PVAL5A(i,s,q)=BAS5(i,s,q)+TAX5(i,s,q)+sum(r,MARGCOM,MAR5(i,s,q,r));
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+PVAL8A(i,s,q)=BAS8(i,s,q)+TAX8(i,s,q)+sum(r,MARGCOM,MAR8(i,s,q,r));
+
+! Subsection 3.1.6: Factor-payment aggregates !
+
+COEFFICIENT
+
+(all,j,IND)(all,q,REGDEST)
+LABOR(j,q) # Total labor bill in industry j #;
+
+(all,j,IND)
+NATLABOR(j) # National labor bill in industry j #;
+
+(all,m,OCC)(all,q,REGDEST)
+LAB_OCC(m,q) # Total labor bill in occupation m #;
+
+(all,m,OCC)
+NATLAB_OCC(m) # National labor bill in occupation m #;
+
+(all,q,REGDEST)
+AGGLAB(q) # Total payments to labor #;
+
+NATAGGLAB # National wage bill #;
+
+(all,q,REGDEST)
+AGGCAP(q) # Total payments to capital #;
+
+NATAGGCAP # National capital rentals #;
+
+(all,q,REGDEST)
+AGGLND(q) # Total payments to land #;
+
+NATAGGLND # National payments to land #;
+
+(all,q,REGDEST)
+TOTFAC(q) # Total primary factor payments #;
+
+NATTOTFAC # National payments to primary factors #;
+
+(all,q,REGDEST)
+AGGOCT(q) # Total other cost ticket payments #;
+
+NATAGGOCT # National payments to other costs #;
+
+! New !
+(all,q,REGDEST)
+AGGCTAX(q) # Total CO2 tax payments #;
+
+! New !
+NATAGGCTAX # National payments to CO2 tax #;
+
+(all,j,IND)(all,q,REGDEST)
+TOTFACIND(j,q) # Total factor input to industry j #;
+
+(all,j,IND)
+NATTOTFACIND(j) # National factor payments in industry j #;
+
+FORMULA
+
+(all,j,IND)(all,q,REGDEST)
+LABOR(j,q)=sum(m,OCC,LAB_OCC_IND(m,j,q));
+
+(all,j,IND)
+NATLABOR(j)=sum(q,REGDEST,LABOR(j,q));
+
+(all,m,OCC)(all,q,REGDEST)
+LAB_OCC(m,q)=sum(j,IND,LAB_OCC_IND(m,j,q));
+
+(all,m,OCC)
+NATLAB_OCC(m)=sum(q,REGDEST,LAB_OCC(m,q));
+
+(all,q,REGDEST)
+AGGLAB(q)=sum(j,IND,LABOR(j,q));
+
+NATAGGLAB=sum(q,REGDEST,AGGLAB(q));
+
+(all,q,REGDEST)
+AGGCAP(q)=sum(j,IND,CAPITAL(j,q));
+
+NATAGGCAP=sum(q,REGDEST,AGGCAP(q));
+
+(all,q,REGDEST)
+AGGLND(q)=sum(j,IND,LAND(j,q));
+
+NATAGGLND=sum(q,REGDEST,AGGLND(q));
+
+(all,q,REGDEST)
+TOTFAC(q)=AGGLAB(q)+AGGCAP(q)+AGGLND(q);
+
+NATTOTFAC=sum(q,REGDEST,TOTFAC(q));
+
+(all,q,REGDEST)
+AGGOCT(q)=sum(j,IND,OTHCOST(j,q));
+
+NATAGGOCT=sum(q,REGDEST,AGGOCT(q));
+
+! New !
+(all,q,REGDEST)
+AGGCTAX(q)=sum(j,IND,CTAX(j,q));
+
+! New !
+NATAGGCTAX=sum(q,REGDEST,AGGCTAX(q));
+
+
+(all,j,IND)(all,q,REGDEST)
+TOTFACIND(j,q)=LABOR(j,q)+CAPITAL(j,q)+LAND(j,q);
+
+(all,j,IND)
+NATTOTFACIND(j)=sum(q,REGDEST,TOTFACIND(j,q));
+
+! Subsection 3.1.7: Final demand aggregates !
+
+COEFFICIENT
+
+(all,j,IND)(all,q,REGDEST)
+INVEST(j,q) # Total capital created for each industry #;
+
+(all,j,IND)
+NATINVEST(j) # Total capital created for each industry #;
+
+(all,q,REGDEST)
+AGGINV(q) # Investment #;
+
+NATAGGINV # National investment #;
+
+(all,q,REGDEST)
+AGGCON(q) # Total purchases by households #;
+
+NATAGGCON # National household demand #;
+
+(all,q,REGDEST)
+AGGEXP(q) # Total export earnings #;
+
+(all,q,REGDEST)
+AGGEXPNT(q) # Total non-traditional export earnings #;
+
+NATAGGEXP # National exports #;
+
+(all,q,REGDEST)
+AGGOTH5(q) # Value of regional government demand #;
+
+NATAGGOTH5 # National value of regional government demand #;
+
+(all,q,REGDEST)
+AGGOTH7(q) # Total value of inventories #;
+
+NATAGGOTH7 # National value of inventories #;
+
+! new !
+(all,q,REGDEST)
+AGGOTH8(q) # Total value of ISFLF demand #;
+
+NATAGGOTH8 # National value of ISFLF demand #;
+
+FORMULA
+
+(all,j,IND)(all,q,REGDEST)
+INVEST(j,q)=sum(i,COM,PVAL2O(i,j,q));
+
+(all,j,IND)
+NATINVEST(j)=sum(q,REGDEST,INVEST(j,q));
+
+(all,q,REGDEST)
+AGGINV(q)=sum(j,IND,INVEST(j,q));
+
+NATAGGINV=sum(q,REGDEST,AGGINV(q));
+
+(all,q,REGDEST)
+AGGCON(q)=sum(i,COM,PVAL3O(i,q));
+
+NATAGGCON=sum(q,REGDEST,AGGCON(q));
+
+(all,q,REGDEST)
+AGGEXP(q)=sum(i,COM,PVAL4R(i,q));
+
+(all,q,REGDEST)
+AGGEXPNT(q)=SUM(i,NTEXP,PVAL4r(i,q));
+
+NATAGGEXP=sum(q,REGDEST,AGGEXP(q));
+
+(all,q,REGDEST)
+AGGOTH5(q)=sum(i,COM,sum(s,ALLSOURCE,PVAL5A(i,s,q)));
+
+NATAGGOTH5=sum(q,REGDEST,AGGOTH5(q));
+
+(all,q,REGDEST)
+AGGOTH7(q)=sum(i,COM,BAS7(i,q));
+
+NATAGGOTH7=sum(i,COM,sum(s,REGSOURCE,BAS7(i,s)));
+
+! new !
+(all,q,REGDEST)
+AGGOTH8(q)=sum(i,COM,sum(s,ALLSOURCE,PVAL8A(i,s,q)));
+
+NATAGGOTH8=sum(i,COM,sum(s,ALLSOURCE,sum(q,REGDEST,PVAL8A(i,s,q))));
+
+! Subsection 3.1.8: Import aggregates !
+
+COEFFICIENT
+
+(all,i,COM)
+NATIMPORTS(i) # Total basic-value imports of good i #;
+
+(all,i,COM)(all,q,REGDEST)
+IMPCOST(i,q) # Total ex-duty imports of good i #;
+
+(all,q,REGDEST)
+AGGIMP(q) # Total foreign currency import costs #;
+
+NATAGGIMP # National foreign currency import costs #;
+
+FORMULA
+
+(all,i,COM)
+NATIMPORTS(i)=sum(q,REGDEST, IMPORTS(i,q));
+
+(all,i,COM)(all,q,REGDEST)
+IMPCOST(i,q)=IMPORTS(i,q)-TARIFF(i,q);
+
+(all,i,COM)
+NATIMPCOST(i)=NATIMPORTS(i)-NATTARIFF(i);
+
+(all,q,REGDEST)
+AGGIMP(q)=sum(i,COM,IMPCOST(i,q));
+
+NATAGGIMP=sum(i,COM,NATIMPCOST(i));
+
+! Subsection 3.1.9: Tax aggregates !
+
+COEFFICIENT
+
+(all,q,REGDEST)
+AGGTAX1(q) # Sales tax on current production #;
+
+(all,q,REGDEST)
+AGGTAX2(q) # Sales tax on capital creation #;
+
+(all,q,REGDEST)
+AGGTAX3(q) # Sales tax on household consumption #;
+
+(all,s,REGSOURCE)
+AGGTAX4(s) # Sales tax on foreign exports #;
+
+(all,q,REGDEST)
+AGGTAX5(q) # Sales tax on regional government demand #;
+
+! new !
+(all,q,REGDEST)
+AGGTAX8(q) # Sales tax on ISFLF demand #;
+
+(all,q,REGDEST)
+AGGTAXM(q) # Tariffs #;
+
+NATAGGTAX1 # Sales tax on current production: national total #;
+
+NATAGGTAX2 # Sales tax on capital creation: national total #;
+
+NATAGGTAX3 # Sales tax on household consumption: national total #;
+
+NATAGGTAX4 # Sales tax on foreign exports: national total #;
+
+NATAGGTAX5 # Sales tax on regional government demand: national total #;
+
+! new !
+NATAGGTAX8 # Sales tax on ISFLF demand: national total #;
+
+NATAGGTAXM # Tariffs: national total #;
+
+NATAGGTAX  # Sales tax: national total #;
+
+(all,q,DOMDEST)
+AGGTAX(q) # Aggregate indirect tax revenue collected by region #;
+
+FORMULA
+
+(all,q,REGDEST)
+AGGTAX1(q)=sum(i,COM,sum(s,ALLSOURCE,sum(j,IND,TAX1(i,s,j,q))));
+
+(all,q,REGDEST)
+AGGTAX2(q)=sum(i,COM,sum(s,ALLSOURCE,sum(j,IND,TAX2(i,s,j,q))));
+
+(all,q,REGDEST)
+AGGTAX3(q)=sum(i,COM,sum(s,ALLSOURCE,TAX3(i,s,q)));
+
+(all,s,REGSOURCE)
+AGGTAX4(s)=sum(i,COM,TAX4(i,s));
+
+(all,q,REGDEST)
+AGGTAX5(q)=sum(i,COM,sum(s,ALLSOURCE,TAX5(i,s,q)));
+
+! new !
+(all,q,REGDEST)
+AGGTAX8(q)=sum(i,COM,sum(s,ALLSOURCE,TAX8(i,s,q)));
+
+(all,q,REGDEST)
+AGGTAXM(q)=sum(i,COM,Tariff(i,q));
+
+NATAGGTAX1=sum(q,REGDEST,AGGTAX1(q));
+
+NATAGGTAX2=sum(q,REGDEST,AGGTAX2(q));
+
+NATAGGTAX3=sum(q,REGDEST,AGGTAX3(q));
+
+NATAGGTAX4=sum(s,REGSOURCE,AGGTAX4(s));
+
+NATAGGTAX5=sum(q,REGDEST,AGGTAX5(q));
+
+! new !
+NATAGGTAX8=sum(q,REGDEST,AGGTAX8(q));
+
+NATAGGTAXM=sum(q,REGDEST, AGGTAXM(q));
+
+! Changed !
+NATAGGTAX=NATAGGTAX1+NATAGGTAX2+NATAGGTAX3+NATAGGTAX4
++NATAGGTAX5+NATAGGTAX8+NATAGGTAXM+NATAGGCTAX;
+
+! Changed !
+(all,q,REGDEST)
+AGGTAX(q)=AGGTAX1(q)+AGGTAX2(q)+AGGTAX3(q)+AGGTAX4(q)+AGGTAX5(q)+AGGTAX8(q)
++AGGTAXM(q)+AGGCTAX(q);
+
+! Subsection 3.1.10: GDP !
+
+COEFFICIENT
+
+NATGDPEX # Nominal GDP from expenditure side #;
+
+NATGDPIN # Nominal GDP from income side #;
+
+FORMULA
+
+NATGDPEX=NATAGGCON+NATAGGINV+NATAGGOTH5+
++NATAGGOTH7+NATAGGOTH8+NATAGGEXP-NATAGGIMP;
+
+NATGDPIN=NATTOTFAC+NATAGGOCT+NATAGGTAX;
+
+! Subsection 3.1.10: Interregional trade flows !
+
+COEFFICIENT
+
+(all,s,REGSOURCE)(all,q,REGDEST)
+C_XSFLO(s,q) # Trade: interregional trade flows #;
+
+(all,s,REGSOURCE)
+C_XSEXP(s) # Interregional exports #;
+
+(all,q,REGDEST)
+C_XSIMP(q) # Interregional imports #;
+
+(all,i,COM)(all,s,REGSOURCE)(all,q,REGDEST)
+C_XSFLOJ(i,s,q) # Trade: interregional trade flows by commodity #;
+
+(all,i,COM)(all,s,REGSOURCE)
+C_XSEXPJ(i,s) # Interregional exports by commodity #;
+
+(all,i,COM)(all,q,REGDEST)
+C_XSIMPJ(i,q) # Interregional imports by commodity #;
+
+(all,i,COM)
+C_XSFLOJSQ(i) # Trade: interregional trade flows by commodity #;
+
+C_XSFLOJSQI # Trade: interregional trade flows: total #;
+
+(all,i,COM)(all,s,REGSOURCE)
+SX(i,s) # Share of export of commodity i, in region s #;
+
+(all,i,COM)(all,q,REGDEST)
+SM(i,q) # Share of import of commodity i, in region q #;
+
+FORMULA
+
+(all,s,REGSOURCE)(all,q,REGDEST)
+C_XSFLO(s,q)=sum(i,COM,sum(j,IND, BAS1(i,s,j,q)))
++sum(i,COM,sum(j,IND,BAS2(i,s,j,q)))+sum(i,COM,BAS3(i,s,q))
++sum(i,COM,BAS5(i,s,q))+sum(i,COM,BAS8(i,s,q));
+
+(all,s,REGSOURCE)
+C_XSEXP(s)=sum(q,REGDEST,C_XSFLO(s,q))-C_XSFLO(s,s);
+
+(all,q,REGDEST)
+C_XSIMP(q)=sum(s,REGSOURCE,C_XSFLO(s,q))-C_XSFLO(q,q);
+
+(all,i,COM)(all,s,REGSOURCE)(all,q,REGDEST)
+C_XSFLOJ(i,s,q)=sum(j,IND,BAS1(i,s,j,q))
++sum(j,IND,BAS2(i,s,j,q))+BAS3(i,s,q)+BAS5(i,s,q)+BAS8(i,s,q);
+
+(all,i,COM)(all,s,REGSOURCE)
+C_XSEXPJ(i,s)=sum(q,REGDEST,C_XSFLOJ(i,s,q))-C_XSFLOJ(i,s,s);
+
+(all,i,COM)(all,q,REGDEST)
+C_XSIMPJ(i,q)=sum(s,REGSOURCE,C_XSFLOJ(i,s,q))-C_XSFLOJ(i,q,q);
+
+(all,i,COM)
+C_XSFLOJSQ(i)=sum(s,REGSOURCE,sum(q,REGDEST,C_XSFLOJ(i,s,q)));
+
+C_XSFLOJSQI=sum(i,COM,C_XSFLOJSQ(i));
+
+(all,i,COM)(all,s,REGSOURCE)
+SX(i,s)=C_XSEXPJ(i,s)/C_XSEXP(s);
+
+(all,i,COM)(all,q,REGDEST)
+SM(i,q)=C_XSIMPJ(i,q)/C_XSIMP(q);
+
+! Subsection 3.1.11: Elasticities and parameters for household demand !
+
+COEFFICIENT
+
+(all,q,REGDEST)
+FRISCH(q) # Frisch parameter #;
+
+(all,i,COM)(all,q,REGDEST)
+DELTA(i,q) # Marginal household budget shares #;
+
+(all,i,COM)(all,q,REGDEST)
+S3COM(i,q) # Shares in total household expenditure #;
+
+(all,q,REGDEST)
+ALPHA(q) # Share of supernumerary in total expenditure #;
+
+(all,i,COM)(all,q,REGDEST)
+EPS(i,q) # Household expenditure elasticities #;
+
+(all,i,COM)(all,q,REGDEST)
+ALPHA_I(i,q) # Supernumerary expenditure good i/total expenditure good i #;
+
+READ
+
+FRISCH from file MDATA header "p021";
+
+DELTA from file MDATA header "p044";
+
+ZERODIVIDE DEFAULT 0.0;
+
+FORMULA
+
+(all,i,COM)(all,q,REGDEST)
+S3COM(i,q)=PVAL3O(i,q)/AGGCON(q);
+
+ZERODIVIDE OFF;
+
+FORMULA
+
+(all,q,REGDEST)
+ALPHA(q)=-1/FRISCH(q);
+
+ZERODIVIDE DEFAULT 1.0;
+
+FORMULA
+(all,i,COM)(all,q,REGDEST)
+EPS(i,q)=DELTA(i,q)/S3COM(i,q);
+
+!  Marginal/average shares !
+
+ZERODIVIDE OFF;
+
+FORMULA
+
+(all,i,COM)(all,q,REGDEST)
+ALPHA_I(i,q)=ALPHA(q)*EPS(i,q);
+
+! Subsection 3.1.12: Costs and sales aggregates !
+
+COEFFICIENT
+
+(all,i,COM)(all,s,REGSOURCE)
+DIRSALES(i,s) # Direct usage #;
+
+(all,r,MARGCOM)(all,s,REGSOURCE)
+MARSALES(r,s) # Margin usage #;
+
+(all,i,COM)(all,s,REGSOURCE)
+SALES(i,s) # All usage #;
+
+(all,j,IND)(all,q,REGDEST)
+COSTS(j,q) # Total costs in industry j in region q #;
+
+! New !
+(all,j,IND)(all,q,REGDEST)
+COSTSPRE(j,q) # Total pre-tax costs in industry j in region #;
+
+(all,i,COM)(all,s,REGSOURCE)
+LOSTGOODS(i,s) # Discrepancy #;
+
+(all,i,COM)
+LOSTGOODS1(i) # Subtotal #;
+
+(all,s,REGSOURCE)
+LOSTGOODS2(s) # Subtotal #;
+
+FORMULA
+
+(all,i,COM)(all,s,REGSOURCE)
+DIRSALES(i,s)=sum(j,IND,sum(q,REGDEST,BAS1(i,s,j,q)))
++sum(j,IND,sum(q,REGDEST,BAS2(i,s,j,q)))+sum(q,REGDEST,BAS3(i,s,q))
++BAS4(i,s)+sum(q,REGDEST,BAS5(i,s,q)+BAS8(i,s,q))+BAS7(i,s);
+
+(all,r,MARGCOM)(all,s,REGSOURCE)
+MARSALES(r,s)=sum(j,IND,sum(i,COM,sum(ss,ALLSOURCE,MAR1(i,ss,j,s,r))))
++sum(j,IND,sum(i,COM,sum(ss,ALLSOURCE,MAR2(i,ss,j,s,r))))
++sum(i,COM,sum(ss,ALLSOURCE,MAR3(i,ss,s,r)))+sum(i,COM,MAR4(i,s,r))
++sum(i,COM,sum(ss,ALLSOURCE,MAR5(i,ss,s,r)+MAR8(i,ss,s,r)));
+
+(all,i,NONMARGCOM)(all,s,REGSOURCE)
+SALES(i,s)=DIRSALES(i,s);
+
+(all,i,MARGCOM)(all,s,REGSOURCE)
+SALES(i,s)=DIRSALES(i,s)+ MARSALES(i,s);
+
+! Changed !
+(all,j,IND)(all,q,REGDEST)
+COSTS(j,q) =sum(i,COM,sum(s,ALLSOURCE,BAS1(i,s,j,q)))
++sum(i,COM,sum(s,ALLSOURCE,sum(R,MARGCOM ,MAR1(i,s,j,q,r))))
++sum(i,COM,sum(s,ALLSOURCE,TAX1(i,s,j,q)))
++sum(m,OCC, LAB_OCC_IND(m,j,q))+CAPITAL(j,q)+LAND(j,q)+OTHCOST(j,q)+CTAX(j,q);
+
+! New !
+(all,j,IND)(all,q,REGDEST)
+COSTSPRE(j,q) =sum(i,COM,sum(s,ALLSOURCE,BAS1(i,s,j,q)))
++sum(i,COM,sum(s,ALLSOURCE,sum(R,MARGCOM ,MAR1(i,s,j,q,r))))
++sum(i,COM,sum(s,ALLSOURCE,TAX1(i,s,j,q)))
++sum(m,OCC, LAB_OCC_IND(m,j,q))+CAPITAL(j,q)+LAND(j,q)+OTHCOST(j,q);
+
+! New !
+(all,j,IND)(all,q,REGDEST)
+CTXRATE(j,q)= CTAX(j,q)/COSTSPRE(j,q); !VAT: V1PTX/V1PRIM !
+
+! Subsection 3.1.13: Mapping coefficients for domestic/foreign and tiny !
+
+COEFFICIENT
+
+(all,s,ALLSOURCE)
+IS_DOM(s) # Binary dummy 1 #;
+
+(all,s,ALLSOURCE)
+IS_IMP(s) # Binary dummy 2 #;
+
+TINY # A very small number #;
+
+FORMULA
+
+(all,s,REGSOURCE)
+IS_DOM(s)=1;
+
+IS_DOM("foreign")=0;
+
+(all,s,REGSOURCE)
+IS_IMP(s)=0;
+
+IS_IMP("foreign")=1;
+
+TINY = 0.0000000000000000001;
+
+
+! Subsection 3.1.13: Credit market !
+
+COEFFICIENT
+
+(PARAMETER)(all,j,IND)(all,q,REGDEST)
+IL(j,q) # Elasticity of interest rate on labor demand #;
+
+(PARAMETER)(all,j,IND)(all,q,REGDEST)
+IL2(j,q) # Elasticity of interest rate on capital demand #;
+
+
+READ
+
+IL from file MDATA header "IL";
+
+IL2 from file MDATA header "IL2";
+
+! Subsection 3.1.14: Scale economies in transportation !
+
+COEFFICIENT
+
+(PARAMETER)(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+THETA(i,s,q) # Parameter of scale economies in bulk transportation #;
+
+READ
+
+THETA from file MDATA header "TETA";
+
+! Section 3.2: Variables and equations for the CGE core module !
+
+! Production !
+
+! Subsection 3.2.1: Demands by industries for intermediate input users, User 1 !
+
+VARIABLE
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+x1a(i,s,j,q) # Demands for inputs for current production #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+x1c(i,j,q) # Demands for domestic composite inputs for current production #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+x1o(i,j,q) # Demands for dom./for. composite inputs for current production #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+p1a(i,s,j,q) # Prices of inputs for current production #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+p1c(i,j,q) # Prices of domestic composite inputs for current production #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+p1o(i,j,q) # Price of dom./for. composite inputs for current production #;
+
+(all,j,IND)(all,q,REGDEST)
+a1(j,q) # All input augmenting technical change #;
+
+(all,j,IND)(all,q,REGDEST)
+a1oct(j,q) # Other cost ticket techncal change #;
+
+(all,j,IND)(all,q,REGDEST)
+x1oct(j,q) # Demand for other cost tickets #;
+
+(all,j,IND)(all,q,REGDEST)
+p1oct(j,q) # Price of other cost tickets #;
+
+! New !
+(change)(all,j,IND)(all,q,REGDEST)
+delV1CTX(j,q) # Ord change CO2 tax revenue #;
+
+! New !
+(change)(all,q,REGDEST)
+delV1CTX_R(q) # Ord change CO2 tax revenue by region #;
+
+! New !
+(change)(all,j,IND)(all,q,REGDEST)
+delCOSTSPRE(j,q) # Change in tax-exc cost of production #;
+
+! New !
+(change)(all,j,IND)(all,q,REGDEST)
+delCOSTS(j,q) # Change in tax-inc cost of production #;
+
+! New !
+(change)(all,j,IND)(all,q,REGDEST)
+delCTXRATE(j,q) # Change in rate of C02 tax #;
+
+(all,j,IND)(all,q,REGDEST)
+f1oct(j,q) # Shifter, other cost tickets #;
+
+(all,j,IND)(all,q,REGDEST)
+z(j,q) # Activity level #;
+
+(all,q,REGDEST)
+xi3(q) # Consumer price index #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+a1s(i,j,q) # intermediate # ;
+
+(all,i,COM)(all,s,ALLSOURCE)
+p0a(i,s) # Basic price of good i, source s #;
+
+EQUATION
+
+E_x1a # Demand for goods by all sources, User 1 #
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+x1a(i,s,j,q)=IS_DOM(s)*(x1c(i,j,q)-SIGMA1C(i)*(p1a(i,s,j,q)-p1c(i,j,q)))
++IS_IMP(s)*(x1o(i,j,q)-SIGMA1O(i)*(p1a(i,"foreign",j,q)-p1o(i,j,q)));
+
+E_p1o # Price of domestic/foreign composite, User 1 #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+(TINY+PVAL1O(i,j,q))*p1o(i,j,q) = sum(s,ALLSOURCE,PVAL1A(i,s,j,q)*p1a(i,s,j,q));
+
+E_p1c # Price of domestic composite, User 1 #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+(TINY+PVAL1T(i,"domestic",j,q))*p1c(i,j,q)
+=sum(s,REGSOURCE,PVAL1A(i,s,j,q)*p1a(i,s,j,q));
+
+E_x1c # Demand for domestic composite, User 1 #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+x1c(i,j,q)=x1o(i,j,q)-SIGMA1O(i)*(p1c(i,j,q)-p1o(i,j,q));
+
+E_x1o # Demand for dom./for. composite inputs, User 1 #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+x1o(i,j,q)=z(j,q)+a1(j,q)+a1s(i,j,q);
+
+E_x1oct # Industry demand for other cost tickets #
+(all,j,IND)(all,q,REGDEST)
+x1oct(j,q)=z(j,q)+a1(j,q)+a1oct(j,q);
+
+E_p1oct # Indexing of prices of other cost tickets #
+(all,j,IND)(all,q,REGDEST)
+p1oct(j,q)=xi3(q)+f1oct(j,q);
+
+! Subsection 3.2.2:  Primary factor demands, prices and supplies !
+
+VARIABLE
+
+(all,j,IND)(all,q,REGDEST)
+efflab(j,q) # Effective labor input #;
+
+(all,j,IND)(all,q,REGDEST)
+p1lab(j,q) # Price of labor #;
+
+!new!
+(all,m,OCC)(all,j,IND)(all,q,REGDEST)
+a1labo(m,j,q) # Labor augmenting technical change, by OCC #;
+
+(all,j,IND)(all,q,REGDEST)
+a1lab(j,q) # Labor augmenting technical change #;
+
+(all,j,IND)(all,q,REGDEST)
+x1prim(j,q) # Demand for the primary factor composite #;
+
+(all,j,IND)(all,q,REGDEST)
+xi_fac(j,q) # Index of factor costs #;
+
+(all,j,IND)(all,q,REGDEST)
+curcap(j,q) # Current capital stock #;
+
+(all,j,IND)(all,q,REGDEST)
+p1cap(j,q) # Rental price of capital #;
+
+(all,j,IND)(all,q,REGDEST)
+a1cap(j,q) # Capital augmenting technical change #;
+
+(all,j,IND)(all,q,REGDEST)
+n(j,q) # Use of land #;
+
+(all,j,IND)(all,q,REGDEST)
+p1land(j,q) # Rental price of land #;
+
+(all,j,IND)(all,q,REGDEST)
+a1land(j,q) # Land augmenting technical change #;
+
+interest # Lending interest rate #;
+
+EQUATION
+
+!new!
+E_a1lab # Labor augmenting technical change by OCC #
+(all,j,IND)(all,q,REGDEST)
+(LABOR(j,q)+TINY)*a1lab(j,q)=sum(m,OCC,LAB_OCC_IND(m,j,q)*a1labo(m,j,q));
+
+E_efflab # Industry demand for effective labor #
+(all,j,IND)(all,q,REGDEST)
+efflab(j,q)=MRL(j,q)*x1prim(j,q)+a1lab(j,q)
+-SIGMA1FAC(j,q)*[p1lab(j,q)+a1lab(j,q)-xi_fac(j,q)];
+
+E_curcap # Industry demand for capital #
+(all,j,IND)(all,q,REGDEST)
+curcap(j,q)=MRK(j,q)*x1prim(j,q)+a1cap(j,q)
+-SIGMA1FAC(j,q)*[p1cap(j,q)+a1cap(j,q)-xi_fac(j,q)]+IL2(j,q)*interest;
+
+E_n # Industry demand for land #
+(all,j,IND)(all,q,REGDEST)
+n(j,q)=MRN(j,q)*x1prim(j,q)+a1land(j,q)
+-SIGMA1FAC(j,q)*[p1land(j,q)+a1land(j,q)-xi_fac(j,q)];
+
+E_xi_fac # Effective price term for factor demand equations #
+(all,j,IND)(all,q,REGDEST)
+(TINY+TOTFACIND(j,q))*xi_fac(j,q)=LABOR(j,q)*(p1lab(j,q)+a1lab(j,q))
++CAPITAL(j,q)*(p1cap(j,q)+a1cap(j,q))+LAND(j,q)*(p1land(j,q)+a1land(j,q));
+
+! Labor by type nest !
+
+VARIABLE
+
+(all,j,IND)(all,q,REGDEST)(all,m,OCC)
+x1laboi(j,q,m) # Employment of occupation type m in industry j #;
+
+(all,j,IND)(all,q,REGDEST)(all,m,OCC)
+p1laboi(j,q,m) # Wage of occupation type m in industry j #;
+
+(all,j,IND)(all,q,REGDEST)
+labind(j,q) # Employment by industry #;
+
+(all,j,IND)(all,q,REGDEST)
+a1prim(j,q) # All primary factor technical change #;
+
+EQUATION
+
+E_x1laboi # Demand for labor by industry and skill group #
+(all,m,OCC)(all,j,IND)(all,q,REGDEST)
+x1laboi(j,q,m)=efflab(j,q)-SIGMA1LAB(j,q)*[p1laboi(j,q,m)-p1lab(j,q)]
++IL(j,q)*interest;
+
+E_p1lab # Price to each industry of labor in general #
+(all,j,IND)(all,q,REGDEST)
+(TINY+LABOR(j,q))*p1lab(j,q)=sum(m,OCC,LAB_OCC_IND(m,j,q)*p1laboi(j,q,m));
+
+E_labind # Employment by industry #
+(all,j,IND)(all,q,REGDEST)
+(TINY+LABOR(j,q))*labind(j,q)=sum(m,OCC,LAB_OCC_IND(m,j,q)*x1laboi(j,q,m));
+
+E_x1prim # Demand for the primary-factor composite #
+(all,j,IND)(all,q,REGDEST)
+x1prim(j,q)=MRP(j,q)*z(j,q)+a1(j,q)+a1prim(j,q);
+
+! New !
+E_delCOSTSPRE
+(all,j,IND)(all,q,REGDEST)
+delCOSTSPRE(j,q)=0.01*CAPITAL(j,q)*[p1cap(j,q)+curcap(j,q)]
++0.01*LAND(j,q)*[p1land(j,q) + n(j,q)]
++sum{m,OCC,0.01*LAB_OCC_IND(m,j,q)*[p1laboi(j,q,m)+x1laboi(j,q,m)]}
++sum{i,COM,sum{s,ALLSOURCE,0.01*PVAL1A(i,s,j,q)*[p1a(i,s,j,q) + x1a(i,s,j,q)]}}
++0.01*OTHCOST(j,q)*[p1oct(j,q)+x1oct(j,q)];
+
+! New !
+E_delV1CTX
+(all,j,IND)(all,q,REGDEST)
+delV1CTX(j,q)=CTXRATE(j,q)*delCOSTSPRE(j,q)+COSTSPRE(j,q)*delCTXRATE(j,q);
+! ORANI VAT alternative: PTXRATE(i)*delV1PRIM(i)+V1PRIM(i)*delPTXRATE(i); !
+
+! New !
+E_delV1CTX_R
+(all,q,REGDEST)
+delV1CTX_R(q)=sum(j,IND,delV1CTX(j,q));
+
+! New !
+E_delCOSTS
+(all,j,IND)(all,q,REGDEST)
+delCOSTS(j,q)=delCOSTSPRE(j,q)+delV1CTX(j,q);
+
+!NEW (CMODULE)!
+
+Variable
+
+!(CMODULE) CO2 generated !
+(all,j,IND)(all,q,REGDEST)
+xcarbon(j,q) # Volume of CO2 emissions #;     !endogenous!
+
+!(cMODULE) CO2 shift!
+(all,j,IND)(all,q,REGDEST)
+fcarbon(j,q) # CO2 shift variable #;     !exogenous!
+
+!(CMODULE) CO2 change level!
+(change)(all,j,IND)(all,q,REGDEST)  !endogenous!
+CARBONVOL(j,q) # CO2 volume LEVEL #;
+
+!(CMODULE) Gov. demand financed by CO2 tax!
+(all,q,REGDEST)
+cgovdem(q) # Gov. demand financed by CO2 tax #;
+
+Coefficient
+!(CMODULE) CO2 generation LEVEL!
+(all,j,IND)(all,q,REGDEST)
+CARBON(j,q) # CO2 - LEVEL#;
+
+Read
+CARBON from file CDATA header "CO2";
+
+Equation
+
+!(CMODULE) CO2 generated  - % change!
+E_carbon # Volume of CO2 generated #
+(all,j,IND)(all,q,REGDEST)
+xcarbon(j,q) = z(j,q) + fcarbon(j,q);
+
+!(CMODULE) CO2 generated - level change!
+E_carbonvol # CO2 generation change - LEVEL #
+(all,j,IND)(all,q,REGDEST)
+CARBONVOL(j,q) = 0.01*CARBON(j,q)*xcarbon(j,q);
+
+! NEW !
+
+! Subsection 3.2.2b. Industry output mix !
+
+VARIABLE
+
+(all,i,COM)(all,j,IND)(all,s,REGSOURCE)
+q1(i,j,s) # Commodity Output by Industry #;
+! endogenous !
+
+(all,j,IND)(all,q,REGDEST)
+p0ind(j,q)  # Average input/output price #;
+! endogenous !
+
+(all,i,COM)(all,s,REGSOURCE)
+x0dom(i,s) # Output of domestically-produced commodities #;
+! endogenous !
+
+EQUATION
+
+E_q1 # Supplies of commodities by industries #
+(all,i,COM)(all,j,IND)(all,s,REGSOURCE)
+q1(i,j,s) =z(j,s)+SIGMA1OUT(j,s)*(p0a(i,s)-p0ind(j,s));
+! Determines q1 !
+
+E_x1tota # Average price received by industries #
+(All,j,IND)(all,q,REGDEST)
+(sum(i,COM,(MAKE(i,j,q))+TINY))*p0ind(j,q)=sum(i,COM,(MAKE(i,j,q))*p0a(i,q));
+! Determines p0ind !
+
+! Subsection 3.2.3:  Demands by industries for capital creation, User 2 !
+
+! Local and national Armington nests for capital creation !
+
+VARIABLE
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+x2a(i,s,j,q) # Demand for inputs for capital creation #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+x2c(i,j,q) # Demand for domestic composite inputs for capital creation #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+x2o(i,j,q) # Demand for dom./for. composite inputs for capital creation #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+p2a(i,s,j,q)  # Prices of inputs for capital creation #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+p2c(i,j,q) # Prices of domestic composite inputs for capital creation #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+p2o(i,j,q) # Price of dom./for. composite inputs for capital creation #;
+
+(all,j,IND)(all,q,REGDEST)
+a2ind(j,q) # Neutral technical change, capital creation #;
+
+(all,j,IND)(all,q,REGDEST)
+y(j,q) # Capital creation by using industry #;
+
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+a2s(i,j,q) # investment #;
+
+EQUATION
+
+E_x2a # Demand for goods by source, User 2 #
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+x2a(i,s,j,q)=IS_DOM(s)*(x2c(i,j,q)-SIGMA2C(i)*(p2a(i,s,j,q)-p2c(i,j,q)))
++IS_IMP(s)*(x2o(i,j,q)-SIGMA2O(i)*(p2a(i,"foreign",j,q)-p2o(i,j,q)));
+
+E_p2o # Price of domestic/foreign composite, User 2 #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+(TINY+PVAL2O(i,j,q))*p2o(i,j,q)=sum(s,ALLSOURCE,PVAL2A(i,s,j,q)*p2a(i,s,j,q));
+
+E_p2c # Price of domestic composite, User 2 #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+(TINY+PVAL2T(i,"domestic",j,q))*p2c(i,j,q)
+=sum(s,REGSOURCE,PVAL2A(i,s,j,q)*p2a(i,s,j,q));
+
+E_x2c # Demand for domestic composite, User 2 #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+x2c(i,j,q)=x2o(i,j,q)-SIGMA2O(i)*(p2c(i,j,q)-p2o(i,j,q));
+
+E_x2o # Demands for domestic/foreign composite, User 2 #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)
+x2o(i,j,q)=y(j,q)+a2ind(j,q)+a2s(i,j,q);
+
+! Subsection 3.2.4:  Household demands for commodities, User 3 !
+
+VARIABLE
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+x3a(i,s,q) # Household demand for goods #;
+
+(all,i,COM)(all,q,REGDEST)
+x3c(i,q) # Demand for domestic composite goods for households #;
+
+(all,i,COM)(all,q,REGDEST)
+x3o(i,q) # Demand for dom./for. composite goods for households #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+p3a(i,s,q) # Purchasers prices of goods for households #;
+
+(all,i,COM)(all,q,REGDEST)
+p3c(i,q) # Prices of domestic composite goods for households #;
+
+(all,i,COM)(all,q,REGDEST)
+p3o(i,q) # Price of dom./for. composite goods for households #;
+
+(all,i,COM)(all,q,REGDEST)
+a3com(i,q) # Change in household tastes #;
+
+(all,i,COM)(all,q,REGDEST)
+a3lux(i,q) # Change in household tastes, luxury #;
+
+(all,i,COM)(all,q,REGDEST)
+a3sub(i,q) # Change in household tastes, subsistency #;
+
+(all,q,REGDEST)
+luxexp(q) # Total supernumerary household expenditure #;
+
+(all,q,REGDEST)
+qhous(q) # Number of households #;
+
+(all,q,REGDEST)
+utility(q) # Utility per household #;
+
+EQUATION
+
+E_x3o # Household demand for composite commodities #
+(all,i,COM)(all,q,REGDEST)
+x3o(i,q)=[1-ALPHA_I(i,q)]*[qhous(q)+a3sub(i,q)]
++ALPHA_I(i,q)*[luxexp(q)+a3lux(i,q)-p3o(i,q)];
+
+E_a3lux # Default setting for luxury taste shifter #
+(all,i,COM)(all,q,REGDEST)
+a3lux(i,q)=a3sub(i,q)-sum(k,COM,DELTA(k,q)*a3sub(k,q));
+
+E_a3sub # Default setting for subsistence taste shifter #
+(all,i,COM)(all,q,REGDEST)
+a3sub(i,q)=a3com(i,q)-sum(k,COM,S3COM(k,q)*a3com(k,q));
+
+E_utility # Change in utility disregarding taste change terms #
+(all,q,REGDEST)
+utility(q)=luxexp(q)-qhous(q)-sum(i,COM,DELTA(i,q)*p3o(i,q));
+
+E_x3a # Demand for goods by source, User 3 #
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+x3a(i,s,q)=IS_DOM(s)*(x3c(i,q)-SIGMA3C(i)*(p3a(i,s,q)-p3c(i,q)))
++IS_IMP(s)*(x3o(i,q)-SIGMA3O(i)*(p3a(i,"foreign",q)-p3o(i,q)));
+
+E_p3o # Price of domestic/foreign composite, User 3 #
+(all,i,COM)(all,q,REGDEST)
+(TINY+PVAL3O(i,q))*p3o(i,q)=sum(s,ALLSOURCE,PVAL3A(i,s,q)*p3a(i,s,q));
+
+E_p3c # Price of domestic composite, User 3 #
+(all,i,COM)(all,q,REGDEST)
+(TINY+PVAL3T(i,"domestic",q))*p3c(i,q)
+=sum(s,REGSOURCE,PVAL3A(i,s,q)*p3a(i,s,q));
+
+E_x3c # Demand for domestic composite, User 3 #
+(all,i,COM)(all,q,REGDEST)
+x3c(i,q)=x3o(i,q)-SIGMA3O(i)*(p3c(i,q)-p3o(i,q));
+
+! Subsection 3.2.5:  Tax rates !
+
+VARIABLE
+
+(change)(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+deltax1(i,s,j,q) # Percent-point change in tax rate on sales of int. inputs #;
+
+(change)(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+deltax2(i,s,j,q) # Percent-point change in tax rate on sales for cap. creat. #;
+
+(change)(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+deltax3(i,s,q) # Percent-point change in tax rate on sales to households #;
+
+(change)(all,i,COM)(all,s,REGSOURCE)
+deltax4(i,s) # Percentage-point change in export tax rates #;
+
+(change)(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+deltax5(i,s,q) # Percent-point change in tax rate on sales to reg. gov. dem. #;
+
+! new !
+(change) (all,i,COM)(all,s,ALLSOURCE) (all,q,REGDEST)
+deltax8(i,s,q) # Percent-point change in tax rate on sales to ISFLF dem. #;
+
+(change) (all,i,COM)
+deltax(i) # Percentage-point change in the general sales tax rate #;
+
+(change)
+deltax1all # Overall percent-point change in indirect tax rates, user 1 #;
+
+(change)
+deltax2all # Overall percent-point change in indirect tax rates, user 2 #;
+
+(change)
+deltax3all # Overall percent-point change in indirect tax rates, user 3 #;
+
+(change)
+deltax4all # Overall percent-point change in indirect tax rates, user 4 #;
+
+(change)
+deltax5all # Overall percent-point change in indirect tax rates, user 5 #;
+
+! new !
+(change)
+deltax8all # Overall percent-point change in indirect tax rates, user 8 #;
+
+(change)(all,q,ALLDEST)
+deltaxdest(q) # Regional tax shifter (percentage-point change) #;
+
+(change)(all,s,ALLSOURCE)
+deltaxsource(s) # Regional tax shifter (percentage-point change) #;
+
+EQUATION
+
+E_deltax1 # Tax rate on sales to User 1 #
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+deltax1(i,s,j,q)=deltax(i)+deltax1all+deltaxsource(s)+deltaxdest(q);
+
+E_deltax2 # Tax rate on sales to User 2 #
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+deltax2(i,s,j,q)=deltax(i)+deltax2all+deltaxsource(s)+deltaxdest(q);
+
+E_deltax3 # Tax rate on sales to User 3 #
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+deltax3(i,s,q)=deltax(i)+deltax3all+deltaxsource(s)+deltaxdest(q);
+
+E_deltax4 # Tax rate on sales to User 4 #
+(all,i,COM)(all,s,REGSOURCE)
+deltax4(i,s)=deltax(i)+deltax4all+deltaxsource(s)+deltaxdest("foreign");
+
+E_deltax5 # Tax rate on sales to User 5 #
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+deltax5(i,s,q)=deltax(i)+deltax5all+deltaxsource(s)+deltaxdest(q);
+
+! new !
+E_deltax8 # Tax rate on sales to User 8 #
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+deltax8(i,s,q)=deltax(i)+deltax8all+deltaxsource(s)+deltaxdest("federal");
+
+! Subsection 3.2.6: Purchasers prices of commodities !
+
+VARIABLE
+
+(all,i,COM)(all,s,REGSOURCE)
+p4r(i,s) # F.O.B. foreign currency export prices #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+p5a(i,s,q) # Purchasers prices for commodities by regional government #;
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+p8a(i,s,q) # Purchasers prices for commodities by ISFLF #;
+
+(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+a1marg_ij(s,q,r) # Tech Margins - current production #;
+
+(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+a2marg_ij(s,q,r) # Tech Margins - capital creation #;
+
+(all,s,ALLSOURCE)(all,r,MARGCOM)(all,q,REGDEST)
+a3marg_i(s,q,r) # Tech Margins - on sales to households #;
+
+(all,s,REGSOURCE)(all,r,MARGCOM)
+a4marg_i(s,r) # Tech Margins - on exports #;
+
+(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+a5marg_i(s,q,r) # Tech Margins - on sales to regional government demand #;
+
+! new !
+(all,s,ALLSOURCE)(all,q,REGDEST) (all,r,MARGCOM)
+a8marg_i(s,q,r) # Tech Margins - on sales to ISFLF demand #;
+
+(all,s,ALLSOURCE)(all,r,MARGCOM)(all,q,REGDEST)
+amarg_i(s,q,r) # Tech Margins - general on sales to Users 1, 2, 3, 5, 6 #;
+
+natphi # Exchange rate #;
+
+EQUATION
+
+E_p1a # Purchasers prices - User 1 #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)(all,s,ALLSOURCE)
+(TINY+PVAL1A(i,s,j,q))*p1a(i,s,j,q) =[BAS1(i,s,j,q)+TAX1(i,s,j,q)]*p0a(i,s)
++BAS1(i,s,j,q)*deltax1(i,s,j,q)+sum(r,MARGCOM,MAR1(i,s,j,q,r)*
+(p0a(r,q)+a1marg_ij(s,q,r)+amarg_i(s,q,r)));
+
+E_p2a # Purchasers prices - User 2 #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)(all,s,ALLSOURCE)
+(TINY+PVAL2A(i,s,j,q))*p2a(i,s,j,q)=[BAS2(i,s,j,q)+TAX2(i,s,j,q)]*p0a(i,s)
++BAS2(i,s,j,q)*deltax2(i,s,j,q)+sum(r,MARGCOM,MAR2(i,s,j,q,r)*
+(p0a(r,q)+a2marg_ij(s,q,r)+amarg_i(s,q,r)));
+
+E_p3a # Purchasers prices - User 3 #
+(all,i,COM)(all,q,REGDEST)(all,s,ALLSOURCE)
+(TINY+PVAL3A(i,s,q))*p3a(i,s,q)=[BAS3(i,s,q)+TAX3(i,s,q)]*p0a(i,s)
++BAS3(i,s,q)*deltax3(i,s,q)+sum(r,MARGCOM,MAR3(i,s,q,r)*
+(p0a(r,q)+a3marg_i(s,q,r)+amarg_i(s,q,r)));
+
+E_p4r # Purchasers prices - User 4 #
+(all,i,COM)(all,s,REGSOURCE)
+(TINY+PVAL4R(i,s))*(natphi+p4r(i,s))=[BAS4(i,s)+TAX4(i,s)]*p0a(i,s)
++BAS4(i,s)*deltax4(i,s)+sum(r,MARGCOM,MAR4(i,s,r)*
+(p0a(r,s)+a4marg_i(s,r)));
+
+E_p5a # Purchasers prices - User 5 #
+(all,i,COM)(all,q,REGDEST)(all,s,ALLSOURCE)
+(TINY+PVAL5A(i,s,q))*p5a(i,s,q)=[BAS5(i,s,q)+TAX5(i,s,q)]*p0a(i,s)
++BAS5(i,s,q)*deltax5(i,s,q)+sum(r,MARGCOM,MAR5(i,s,q,r)*
+(p0a(r,q)+a5marg_i(s,q,r)+amarg_i(s,q,r)));
+
+! new !
+E_p8a # Purchasers prices - User 6 #
+(all,i,COM)(all,s,ALLSOURCE) (all,q,REGDEST)
+(TINY+PVAL8A(i,s,q))*p8a(i,s,q)=[BAS8(i,s,q)+TAX8(i,s,q)]*p0a(i,s)
++BAS8(i,s,q)*deltax8(i,s,q)+sum(r,MARGCOM,MAR8(i,s,q,r)*
+(p0a(r,s)+a8marg_i(s,q,r)+amarg_i(s,q,r)));
+
+! Subsection 3.2.7: Tax revenues !
+
+VARIABLE
+
+(all,q,REGDEST)
+taxrev1(q) # Aggregate revenue, indirect taxes on intermediate #;
+
+(all,q,REGDEST)
+taxrev2(q) # Aggregate revenue, indirect taxes on investment #;
+
+(all,q,REGDEST)
+taxrev3(q) # Aggregate revenue, indirect taxes on households #;
+
+(all,s,REGSOURCE)
+taxrev4(s) # Aggregate revenue, indirect taxes on foreign exports #;
+
+(all,q,REGDEST)
+taxrev5(q) # Aggregate revenue, indirect taxes on regional government #;
+
+! new !
+(all,q,REGDEST)
+taxrev8(q) # Aggregate revenue, indirect taxes on ISFLF #;
+
+nattaxrev1 # Aggregate revenue from indirect taxes on intermediate #;
+
+nattaxrev2 # Aggregate revenue from indirect taxes on investment #;
+
+nattaxrev3 # Aggregate revenue from indirect taxes on households #;
+
+nattaxrev4 # Aggregate revenue from indirect taxes on exports #;
+
+nattaxrev5 # Aggregate revenue from indirect taxes on regional government #;
+
+! new !
+nattaxrev8 # Aggregate revenue from indirect taxes on ISFLF #;
+
+(all,i,COM)(all,s,REGSOURCE)
+x4r(i,s) # Export volume #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+x5a(i,s,q) # Regional government demand #;
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+x8a(i,s,q) # ISFLF demand in each region #;
+
+EQUATION
+
+E_taxrev1 # Aggregate revenue from indirect taxes levied on flows to User 1 #
+(all,q,REGDEST)
+AGGTAX1(q)*taxrev1(q)=sum(i,COM,sum(s,ALLSOURCE,sum(j,IND,TAX1(i,s,j,q)
+*{p0a(i,s)+x1a(i,s,j,q)}+BAS1(i,s,j,q)*deltax1(i,s,j,q))));
+
+E_nattaxrev1 # National revenue from indirect taxes levied on flows to User 1 #
+NATAGGTAX1*nattaxrev1=sum(q,REGDEST,AGGTAX1(q)*taxrev1(q));
+
+E_taxrev2 # Aggregate revenue from indirect taxes levied on flows to User 2 #
+(all,q,REGDEST)
+AGGTAX2(q)*taxrev2(q)=sum(i,COM, sum(s,ALLSOURCE,sum(j,IND,TAX2(i,s,j,q)
+*{p0a(i,s)+x2a(i,s,j,q)}+BAS2(i,s,j,q)*deltax2(i,s,j,q))));
+
+E_nattaxrev2 # National revenue from indirect taxes levied on flows to User 2 #
+NATAGGTAX2*nattaxrev2=sum(q,REGDEST,AGGTAX2(q)*taxrev2(q));
+
+E_taxrev3 # Aggregate revenue from indirect taxes levied on flows to User 3 #
+(all,q,REGDEST)
+AGGTAX3(q)*taxrev3(q)=sum(i,COM,sum(s,ALLSOURCE,TAX3(i,s,q)
+*{p0a(i,s)+x3a(i,s,q)}+BAS3(i,s,q)*deltax3(i,s,q)));
+
+E_nattaxrev3 # National revenue from indirect taxes levied on flows to User 3 #
+NATAGGTAX3*nattaxrev3=sum(q,REGDEST,AGGTAX3(q)*taxrev3(q));
+
+E_taxrev4 # Aggregate revenue from indirect taxes levied on flows to User 4 #
+(all,s,REGSOURCE)
+AGGTAX4(s)*taxrev4(s)=sum(i,COM,TAX4(i,s)*{p0a(i,s)+x4r(i,s)}
++BAS4(i,s)*deltax4(i,s));
+
+E_nattaxrev4 # National revenue from indirect taxes levied on flows to User 4 #
+NATAGGTAX4*nattaxrev4= sum(s,REGSOURCE,AGGTAX4(s)*taxrev4(s));
+
+E_taxrev5 # Aggregate revenue from indirect taxes levied on flows to User 5 #
+(all,q,REGDEST)
+(TINY+AGGTAX5(q))*taxrev5(q)=sum(i,COM,sum(s,ALLSOURCE,TAX5(i,s,q)
+*{p0a(i,s)+x5a(i,s,q)}+BAS5(i,s,q)*deltax5(i,s,q)));
+
+E_nattaxrev5 # National revenue from indirect taxes levied on flows to User 5 #
+(TINY+NatAGGTAX5)*nattaxrev5=sum(q,REGDEST,AGGTAX5(q)*taxrev5(q));
+
+! new !
+E_taxrev8 # Aggregate revenue from indirect taxes levied on flows to User 8 #
+(all,q,REGDEST)
+(TINY+AGGTAX8(q))*taxrev8(q)=sum(i,COM,sum(s,ALLSOURCE,TAX8(i,s,q)
+*{p0a(i,s)+x8a(i,s,q)}+BAS8(i,s,q)*deltax8(i,s,q)));
+
+! new !
+E_nattaxrev8 # National revenue from indirect taxes levied on flows to User 8 #
+(TINY+NATAGGTAX8)*nattaxrev8=sum(q,REGDEST,AGGTAX8(q)*taxrev8(q));
+
+! Subsection 3.2.8: Demands for exports !
+
+VARIABLE
+
+(all,s,REGSOURCE)
+aggnt_x4r(s)  # Aggregate regional non-traditional exports #;
+
+(all,s,REGSOURCE)
+aggnt_feq(s)  # Quant. shift non-traditional exports #;
+
+(all,s,REGSOURCE)
+aggnt_fep(s)  # Price shift non-traditional exports #;
+
+(all,s,REGSOURCE)
+aggnt_p4r(s)  # Aggregate foreign price non-traditional exports #;
+
+(all,i,NTEXP)
+faggnt_i(i) # Shifter by commodity #;
+
+(all,s,REGSOURCE)
+faggnt_s(s) # Shifter by region #;
+
+(all,s,REGSOURCE)
+faggnt_p4r(s) # Shifter on aggregate price by region #;
+
+(all,i,COM)
+fep(i) # Price (upward) shift in export demands #;
+
+(all,i,COM)
+feq(i) # Quantity (right) shift in export demands #;
+
+natfep # Economy-wide shifter of export demand curves #;
+
+(all,i,NTEXP)(all,s,REGSOURCE)
+faggnt_is(i,s) # Shifter by commodity and region #;
+
+EQUATION
+
+E_x4r # Export demand functions #
+(all,i,TEXP)(all,s,REGSOURCE)
+x4r(i,s)-feq(i)=EXP_ELAST(i,s)*[p4r(i,s)-fep(i)-natfep];
+
+E_aggnt_x4r # Export demand functions, non-trad aggregate #
+(all,s,REGSOURCE)
+aggnt_x4r(s)-aggnt_feq(s)=EXP_ELAST("COM_62",s)
+*[aggnt_p4r(s)-aggnt_fep(s)-natfep];
+
+E_nt_x4r # Export demand functions, non-trad #
+(all,i,NTEXP)(all,s,REGSOURCE)
+x4r(i,s)=aggnt_x4r(s)+faggnt_i(i)+faggnt_s(s)+faggnt_is(i,s);
+
+E_aggnt_p4r # Export price, non-trad aggregate #
+(all,s,REGSOURCE)
+[AGGEXPNT(s)+TINY]*aggnt_p4r(s)=sum(i,NTEXP,PVAL4r(i,s)*p4r(i,s))+faggnt_p4r(s);
+
+! Subsection 3.2.9: Demands for commodities for regional gov. expenditure !
+
+VARIABLE
+
+(all,q,REGDEST)
+cr(q) # Real household consumption #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+f5a(i,s,q) # Shift in regional government demand #;
+
+natf5gen # Overall shift term for regional government demand #;
+
+(all,q,REGDEST)
+f5gen(q) # Shifter, regional government demand #;
+
+natcr # Real household consumption #;
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE) (all,q,REGDEST)
+f8a(i,s,q) # Shift, ISFLF demand #;
+
+natf8gen # Overall shift term for ISFLF demand #;
+
+(all,q,REGDEST)
+f8gen(q) # Shifter, ISFLF demand  #;
+
+! Subsection 3.2.10: Inventories - residual !
+
+VARIABLE
+
+(change)(all,i,COM)(all,s,REGSOURCE)
+x7a(i,s) # Other demands - inventories #;
+
+(change)(all,q,REGSOURCE)
+f7a(q) # Other demands - shift #;
+
+EQUATION
+
+E_x7a # Other demands for commodities: invnentories #
+(all,i,COM)(all,s,REGSOURCE)
+x7a(i,s)=f7a(s);
+
+! Subsection 3.2.11: Margin usage of commodities !
+
+Variable
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)(all,r,MARGCOM)
+x1marg(i,s,j,q,r) # Margins - current production #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)(all,r,MARGCOM)
+x2marg(i,s,j,q,r) # Margins - capital creation #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,r,MARGCOM)(all,q,REGDEST)
+x3marg(i,s,q,r) # Margins - on sales to households #;
+
+(all,i,COM)(all,s,REGSOURCE)(all,r,MARGCOM)
+x4marg(i,s,r) # Margins - on exports #;
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+x5marg(i,s,q,r) # Margins - on sales to regional government demand #;
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST) (all,r,MARGCOM)
+x8marg(i,s,q,r) # Margins - on sales to ISFLF demand #;
+
+EQUATION
+
+E_x1marg # Margins on sales to producers #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)(all,s,ALLSOURCE)(all,r,MARGCOM)
+x1marg(i,s,j,q,r)=THETA(i,s,q)*x1a(i,s,j,q)+a1marg_ij(s,q,r)+amarg_i(s,q,r);
+
+E_x2marg # Margins on sales to capital creators #
+(all,i,COM)(all,j,IND)(all,q,REGDEST)(all,s,ALLSOURCE)(all,r,MARGCOM)
+x2marg(i,s,j,q,r)=THETA(i,s,q)*x2a(i,s,j,q)+a2marg_ij(s,q,r)+amarg_i(s,q,r);
+
+E_x3marg # Margins on sales to household consumption #
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+x3marg(i,s,q,r)=THETA(i,s,q)*x3a(i,s,q)+a3marg_i(s,q,r)+amarg_i(s,q,r);
+
+E_x4marg # Margins on exports: factory gate to port #
+(all,i,COM)(all,r,MARGCOM)(all,s,REGSOURCE)
+x4marg(i,s,r)=x4r(i,s)+a4marg_i(s,r);
+
+E_x5marg # Margins on sales to regional government demand #
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+x5marg(i,s,q,r)=x5a(i,s,q)+a5marg_i(s,q,r)+amarg_i(s,q,r);
+
+! new !
+E_x8marg # Margins on sales to federal government demand in each region #
+(all,i,COM)(all,r,MARGCOM)(all,s,ALLSOURCE)(all,q,REGDEST)
+x8marg(i,s,q,r)=x8a(i,s,q)+a8marg_i(s,q,r)+amarg_i(s,q,r);
+
+! Subsection 3.2.12: Supply equals demand for domestic & imported commodities !
+
+VARIABLE
+
+(all,i,COM)(all,q,REGDEST)
+x0imp(i,q) # Import volumes #;
+
+(all,i,COM)
+natx0imp(i) # Import volume #;
+
+EQUATION
+
+! NEW !
+
+E_x0dom # Total output of domestic commodities #
+(all,i,COM)(all,s,REGSOURCE)
+x0dom(i,s)=sum(j,IND,((MAKE(i,j,s)+TINY)/(MAKE_J(i,s)+TINY))*q1(i,j,s));
+! Determines x0dom !
+! Teste: incluir TINY no numerador !
+
+! Substituir z(r,s) por x0dom(r,s) nas duas prÃ³ximas equaÃ§Ãµes de equilÃ­brio !
+
+E_mkt_clear_margins # Demand equals supply for margin commodities #
+(all,r,MARGCOM)(all,s,REGSOURCE)
+(TINY+SALES(r,s))*x0dom(r,s)=sum(j,IND,sum(q,REGDEST,BAS1(r,s,j,q)*x1a(r,s,j,q)
++BAS2(r,s,j,q)*x2a(r,s,j,q)))+sum(q,REGDEST,BAS3(r,s,q)*x3a(r,s,q))
++BAS4(r,s)*x4r(r,s)+sum(q,REGDEST,BAS5(r,s,q)*x5a(r,s,q))
++sum(q,REGDEST,BAS8(r,s,q)*x8a(r,s,q))+BAS7(r,s)*x7a(r,s)
++sum(j,IND,sum(i,COM,sum(ss,ALLSOURCE,MAR1(i,ss,j,s,r)*x1marg(i,ss,j,s,r)
++MAR2(i,ss,j,s,r)*x2marg(i,ss,j,s,r))))
++sum(i,COM, sum(ss,ALLSOURCE,MAR3(i,ss,s,r)*x3marg(i,ss,s,r)))
++sum(i,COM,MAR4(i,s,r)*x4marg(i,s,r))
++sum(i,COM,sum(ss,ALLSOURCE,MAR5(i,ss,s,r)*x5marg(i,ss,s,r)))
++sum(i,COM,sum(ss,ALLSOURCE,MAR8(i,ss,s,r)*x8marg(i,ss,s,r)));
+
+E_mkt_clear_nomarg # Demand equals supply for non-margin commodities #
+(all,r,NONMARGCOM)(all,s,REGSOURCE)
+(TINY+SALES(r,s))*x0dom(r,s)=
+sum(j,IND,sum(q,REGDEST,BAS1(r,s,j,q)*x1a(r,s,j,q)))
++sum(j,IND,sum(q,REGDEST,BAS2(r,s,j,q)*x2a(r,s,j,q)))
++sum(q,REGDEST,BAS3(r,s,q)*x3a(r,s,q))+BAS4(r,s)*x4r(r,s)
++sum(q,REGDEST,BAS5(r,s,q)*x5a(r,s,q))
++sum(q,REGDEST,BAS8(r,s,q)*x8a(r,s,q))+BAS7(r,s)*x7a(r,s);
+
+E_x0impa # Import volume of commodities by region #
+(all,i,COM)(all,q,REGDEST)
+(TINY+IMPORTS(i,q))*x0imp(i,q)=
+sum(j,IND,BAS1(i,"foreign",j,q)*x1a(i,"foreign",j,q)
++BAS2(i,"foreign",j,q)*x2a(i,"foreign",j,q))
++BAS3(i,"foreign",q)*x3a(i,"foreign",q)
++BAS5(i,"foreign",q)*x5a(i,"foreign",q)
++BAS8(i,"foreign",q)*x8a(i,"foreign",q);
+
+E_natx0imp # Import volume #
+(all,i,COM)
+(TINY+NATIMPORTS(i))*natx0imp(i)=sum(q,REGDEST,IMPORTS(i,q)*x0imp(i,q));
+
+! Subsection 3.2.13: Basic prices !
+
+VARIABLE
+
+(all,j,IND)(all,q,REGDEST)
+a(j,q) # Average of technical change terms, prod. #;
+
+(all,j,IND)(all,q,REGDEST)
+pi(j,q) # Costs of units of capital #;
+
+(all,i,COM)
+pm(i) # C.I.F. foreign currency import prices #;
+
+(all,i,COM)
+powtaxm(i) # Power of tariffs #;
+
+EQUATION
+
+! Changed !
+E_p0ind # Zero pure profits in current production#
+(all,j,IND)(all,q,REGDEST)
+(TINY+COSTS(j,q))*{p0ind(j,q)-a(j,q)}=
+sum(i,COM,sum(s,ALLSOURCE,PVAL1A(i,s,j,q)*[p1a(i,s,j,q)+a1s(i,j,q)]))
++ sum(m,OCC,LAB_OCC_IND(m,j,q)* p1laboi(j,q,m))+ CAPITAL(j,q)*p1cap(j,q)
++LAND(j,q)*p1land(j,q)+ OTHCOST(j,q)*p1oct(j,q)+100*delV1CTX(j,q);
+
+E_a # Technical change by industry-current production #
+(all,j,IND)(all,q,REGDEST)
+(TINY+COSTS(j,q))*[a(j,q)-a1(j,q)]=TOTFACIND(j,q)*a1prim(j,q)
++LABOR(j,q)*a1lab(j,q)+CAPITAL(j,q)*a1cap(j,q)+LAND(j,q)*a1land(j,q)
++OTHCOST(j,q)*a1oct(j,q);
+
+E_pi # Zero pure profits in capital creation #
+(all,j,IND)(all,q,REGDEST)
+(TINY+INVEST(j,q))*(pi(j,q)-a2ind(j,q))=
+sum(i,COM,sum(s,ALLSOURCE,PVAL2A(i,s,j,q)*[p2a(i,s,j,q)+a2s(i,j,q)]));
+
+E_p0ab # Zero pure profits in importing #
+(all,i,COM)
+p0a(i,"foreign")=pm(i)+natphi+powtaxm(i);
+
+! Subsection 3.2.14: Components of regional GDP, real and nominal !
+
+VARIABLE
+
+(all,q,REGDEST)
+caprev(q) # Aggregate payments to capital #;
+
+(all,q,REGDEST)
+labrev(q) # Aggregate payments to labor #;
+
+(all,q,REGDEST)
+lndrev(q) # Aggregate payments to land #;
+
+(all,q,REGDEST)
+octrev(q) # Aggregate other cost ticket payments #;
+
+(all,q,REGDEST)
+taxrevm(q) # Aggregate tariff revenue #;
+
+(all,q,REGDEST)
+taxind(q) # Aggregate revenue from all indirect taxes #;
+
+(all,j,IND)
+natlabind(j) # Employment by industry #;
+
+(all,q,REGDEST)
+l(q) # Aggregate employment, wage bill weights #;
+
+(all,q,REGDEST)
+kt(q) # Aggregate capital stock, rental weights #;
+
+(all,q,REGDEST)
+z_tot(q) # Aggregate output, value-added weights #;
+
+(all,q,REGDEST)
+c(q) # Nominal total household consumption #;
+
+(all,q,REGDEST)
+in(q) # Aggregate nominal investment #;
+
+(all,q,REGDEST)
+ir(q) # Aggregate real investment expenditure #;
+
+(all,q,REGDEST)
+xi2(q) # Investment price index #;
+
+(all,q,REGDEST)
+othnom5(q) # Aggregate nominal regional government demand #;
+
+! new !
+(all,q,REGDEST)
+othnom8(q) # Aggregate nominal ISFLF demand #;
+
+(all,q,REGDEST)
+othreal5(q) # Aggregate real regional government demand #;
+
+! new !
+(all,q,REGDEST)
+othreal8(q) # Aggregate real ISFLF demand #;
+
+(all,q,REGDEST)
+xi5(q) # Regional government demand price index #;
+
+! new !
+(all,q,REGDEST)
+xi8(q) # ISFLF demand price index #;
+
+(all,q,REGDEST)
+export(q) # Foreign currency value of exports #;
+
+(all,q,REGDEST)
+expvol(q) # Export volume #;
+
+(all,q,REGDEST)
+xi4(q) # Exports price index #;
+
+(all,q,REGDEST)
+exp_for_cr(q) # HRK value of exports #;
+
+(all,q,REGDEST)
+imp(q) # Foreign currency value of imports #;
+
+(all,q,REGDEST)
+impvol(q) # Import volume index #;
+
+(all,q,REGDEST)
+xim(q) # Imports price index #;
+
+(all,q,REGDEST)
+imp_for_cr(q) # HRK value of imports #;
+
+(all,s,REGSOURCE)(all,q,REGDEST)
+psflo(s,q) # Price index - interregional trade flows #;
+
+(all,s,REGSOURCE)
+psexp(s) # Price indices for interregional exports #;
+
+(all,q,REGDEST)
+psimp(q) # Price indices for interregional imports #;
+
+(all,s,REGSOURCE)
+xsexp(s) # Exports volume in interregional trade #;
+
+(all,q,REGDEST)
+xsimp(q) # Imports volume in interregional trade #;
+
+(change)(all,q,REGDEST)
+delb_dom(q) # Change in interregional trade balance # ;
+
+(change)(all,q,REGDEST)
+delb_for_cr(q) # HRK value of foreign trade balance #;
+
+(change)(all,q,REGDEST)
+delb_tot(q) # Sum of domestic and foreign trade balance #;
+
+(all,s,REGSOURCE) (all,q,REGDEST)
+xsflo(s,q) # Volume of interregional trade flows #;
+
+(all,q,REGDEST)
+cr_shr(q) # Regional/national consumption ratio #;
+
+(all,q,REGDEST)
+yd_r(q) # Household disposable income #;
+
+(all,q,REGDEST)
+c_shift(q) # Shift term in household disposable income #;
+
+EQUATION
+
+E_caprev # Aggregate payments to capital #
+(all,q,REGDEST)
+caprev(q)=(1.0/AGGCAP(q))*sum(j,IND,CAPITAL(j,q)*{p1cap(j,q)+curcap(j,q)});
+
+E_labrev # Aggregate payments to labor #
+(all,q,REGDEST)
+labrev(q)=(1.0/AGGLAB(q))*sum(j,IND,sum(m,OCC,LAB_OCC_IND(m,j,q)
+*{p1laboi(j,q,m)+x1laboi(j,q,m)}));
+
+E_lndrev # Aggregate payments to land #
+(all,q,REGDEST)
+lndrev(q)=(1.0/AGGLND(q))*sum(j,IND,LAND(j,q)*{p1land(j,q)+n(j,q)});
+
+E_octrev # Aggregate other cost ticket payments #
+(all,q,REGDEST)
+octrev(q)=(1.0/AGGOCT(q))*sum(j,IND,OTHCOST(j,q)*{p1oct(j,q)+x1oct(j,q)});
+
+E_taxrevm # Aggregate tariff revenue #
+(all,q,REGDEST)
+AGGTAXM(q)*taxrevm(q)=sum(i,COM,Tariff(i,q)*{pm(i)+natphi+x0imp(i,q)}
++IMPORTS(i,q)*powtaxm(i));
+
+! Changed ! ! +AGGCTAX(q)*carbontax(q) ? !
+E_taxind # Aggregate value of indirect taxes #
+(all,q,REGDEST)
+taxind(q)=(1.0/AGGTAX(q))*(AGGTAX1(q)*taxrev1(q)+AGGTAX2(q)*taxrev2(q)
++AGGTAX3(q)*taxrev3(q)+AGGTAX4(q)*taxrev4(q)+AGGTAX5(q)*taxrev5(q)
++AGGTAX8(q)*taxrev8(q)+AGGTAXM(q)*taxrevm(q));
+
+E_natlabind # Aggregate employment - wage bill weights #
+(all,j,IND)
+(TINY+NATLABOR(j))*natlabind(j)=sum(q,REGDEST,LABOR(j,q)*labind(j,q));
+
+E_l # Aggregate employment - wage bill weights #
+(all,q,REGDEST)
+l(q)=(1.0/AGGLAB(q))*sum(j,IND,LABOR(j,q)*labind(j,q));
+
+E_kt # Aggregate usage of capital, rental weights #
+(all,q,REGDEST)
+kt(q)=(1.0/AGGCAP(q))*sum(j,IND,CAPITAL(j,q)*curcap(j,q));
+
+E_z_tot # Aggregate output: value-added weights #
+(all,q,REGDEST)
+TOTFAC(q)*z_tot(q)=sum(j,IND,TOTFACIND(j,q)*z(j,q));
+
+E_c_a # Household budget constraint #
+(all,q,REGDEST)
+AGGCON(q)*c(q)=
+sum(i,COM,sum(s,ALLSOURCE,PVAL3A(i,s,q)*{x3a(i,s,q)+p3a(i,s,q)}));
+
+E_ydr # Disposable income #
+(all,q,REGDEST)
+(AGGLAB(q)+TINY)*yd_r(q)=
+sum(j,IND,LABOR(j,q)*{p1lab(j,q)
++efflab(j,q)-a1lab(j,q)});
+
+E_c_b # Consumption function #
+(all,q,REGDEST)
+c(q)=yd_r(q)+c_shift(q);
+
+E_cr # Real (total) household consumption #
+(all,q,REGDEST)
+cr(q)=c(q)-xi3(q);
+
+E_in # Total nominal investment #
+(all,q,REGDEST)
+in(q)=ir(q)+xi2(q);
+
+E_ir # Total real investment #
+(all,q,REGDEST)
+ir(q)=(1.0/AGGINV(q))*sum(j,IND,INVEST(j,q)*y(j,q));
+
+E_othnom5 # Aggregate nominal value of regional government demand #
+(all,q,REGDEST)
+othnom5(q)=othreal5(q)+xi5(q);
+
+E_othreal5 # Aggregate real regional government demand #
+(all,q,REGDEST)
+othreal5(q)=
+(1.0/AGGOTH5(q))*sum(i,COM,sum(s,ALLSOURCE,PVAL5A(i,s,q)*x5a(i,s,q)));
+
+! new !
+E_othnom8 # Nominal ISFLF demand #
+(all,q,REGDEST)
+othnom8(q)=othreal8(q)+xi8(q);
+
+E_othreal8 # Real ISFLF demand #
+(all,q,REGDEST)
+AGGOTH8(q)*othreal8(q)=sum(i,com,sum(s,ALLSOURCE,PVAL8A(i,s,q)*x8a(i,s,q)));
+
+E_export # Foreign currency value of exports #
+(all,q,REGDEST)
+export(q)=(1.0/AGGEXP(q))*sum(i,COM,PVAL4R(i,q)*[p4r(i,q)+x4r(i,q)]);
+
+E_expvol # Export volume index #
+(all,q,REGDEST)
+expvol(q)=export(q)+natphi-xi4(q);
+
+E_exp_for_cr # Foreign export aggregate in HRK #
+(all,q,REGDEST)
+exp_for_cr(q)=expvol(q)+xi4(q);
+
+E_imp # Foreign currency value of imports #
+(all,q,REGDEST)
+imp(q)=(1.0/AGGIMP(q))*sum(i,COM,IMPCOST(i,q)*[pm(i)+x0imp(i,q)]);
+
+E_impvol # Import volume index #
+(all,q,REGDEST)
+impvol(q)=imp(q)+natphi-xim(q);
+
+E_imp_for_cr # Foreign import aggregate in HRK #
+(all,q,REGDEST)
+imp_for_cr(q)=impvol(q)+xim(q);
+
+E_trd # Interregional trade flows (including diagonal term) #
+(all,s,REGSOURCE) (all,q,REGDEST)
+(TINY+C_XSFLO(s,q))*(psflo(s,q)+xsflo(s,q))=
+sum(i,com,sum(j,IND,BAS1(i,s,j,q)*(p0a(i,s)+ x1a(i,s,j,q))))
++sum(i,com,sum(j,IND,BAS2(i,s,j,q)*(p0a(i,s)+x2a(i,s,j,q))))
++sum(i,com,BAS3(i,s,q)*(p0a(i,s)+x3a(i,s,q)))
++sum(i,com,BAS5(i,s,q)*(p0a(i,s)+x5a(i,s,q)))
++sum(i,com,BAS8(i,s,q)*(p0a(i,s)+x8a(i,s,q)));
+
+E_int_exp # Interregional exports #
+(all,s,REGSOURCE)
+(TINY+C_XSEXP(s))*(psexp(s)+xsexp(s))=
+sum(q,REGDEST,C_XSFLO(s,q)*(psflo(s,q)+xsflo(s,q)))
+-C_XSFLO(s,s)*(psflo(s,s)+xsflo(s,s));
+
+E_int_imp # Interregional imports #
+(all,q,REGDEST)
+(TINY+C_XSIMP(q))*(psimp(q)+xsimp(q))=
+sum(s,REGSOURCE,C_XSFLO(s,q)*(psflo(s,q)+xsflo(s,q)))
+-C_XSFLO(q,q)*(psflo(q,q)+xsflo(q,q));
+
+E_delb_for_cr # Balance of trade in HRK #
+(all,q,REGDEST)
+delB_for_cr(q)=AGGEXP(q)*exp_for_cr(q)-AGGIMP(q)*imp_for_cr(q);
+
+E_delb_dom # Balance of interregional HRK #
+(all,q,REGDEST)
+delb_dom(q)=(TINY+C_XSEXP(q))*(psexp(q)+xsexp(q))
+-(TINY+C_XSIMP(q))*(psimp(q)+xsimp(q));
+
+E_delb_tot # Total domestic and foreign trade balance #
+(all,q,REGDEST)
+delb_tot(q)=delb_dom(q)+delb_for_cr(q);
+
+E_cr_shr # Shares in national cr #
+(all,q,REGDEST)
+cr(q)=natcr+cr_shr(q);
+
+! Subsection 3.2.15: National GDP, real and nominnal, and its components !
+
+VARIABLE
+
+natcaprev # Aggregate payments to capital #;
+
+natlabrev # Aggregate payments to labor #;
+
+natlndrev # Aggregate payments to land #;
+
+natoctrev # Aggregate other cost ticket payments #;
+
+nattaxrevm # Aggregate tariff revenue #;
+
+nattaxind # Aggregate revenue from all indirect taxes #;
+
+natgdpinc # Nominal GDP from income side #;
+
+natkt # Aggregate capital stock, rental weights #;
+
+natl # Aggregate employment, wage bill weights #;
+
+natz_tot # Aggregate output, value-added weights #;
+
+(all,j,IND)
+natz(j) # Activity level #;
+
+natc # Nominal total household consumption #;
+
+natin # Aggregate nominal investment #;
+
+natir # Aggregate real investment expenditure #;
+
+natxi2 # Investment price index #;
+
+(all,j,IND)
+naty(j) # Capital creation by using industry #;
+
+natothnom5 # Aggregate nominal value of regional government demand #;
+
+natothnom7 # Aggregate nominal value - inventories #;
+
+! new !
+natothnom8 # Aggregate nominal value of ISFLF demand #;
+
+natothreal5 # Aggregate real regional government demand #;
+
+natothreal7 # Aggregate real inventories #;
+
+! new !
+natothreal8 # Aggregate real ISFLF demand #;
+
+natxi5 # Regional government demand price index #;
+
+natxi7 # Price index - inventories #;
+
+! new !
+natxi8 # ISFLF demand price index #;
+
+natexport # Foreign-currency value of exports #;
+
+natexpvol # Export volume #;
+
+natxi4 # Exports price index #;
+
+natimp # Foreign currency value of imports #;
+
+natimpvol # Import volume #;
+
+natxim # Imports price index #;
+
+natgdpexp # Nominal GDP from expenditure side #;
+
+natgdpreal # Real GDP from expenditure side #;
+
+natxigdp # GDP price index, expenditure side #;
+
+(change)
+natdelb # Ordinary change in balance of trade #;
+
+EQUATION
+
+E_natcaprev # Aggregate payments to capital #
+natcaprev=(1.0/NATAGGCAP)*sum(q,REGDEST,AGGCAP(q)*caprev(q));
+
+E_natlabrev # Aggregate payments to labor #
+natlabrev=(1.0/NATAGGLAB)*sum(q,REGDEST, AGGLAB(q)*labrev(q));
+
+E_natlndrev # Aggregate payments to land #
+natlndrev=(1.0/NATAGGLND)*sum(q,REGDEST,AGGLND(q)*lndrev(q));
+
+E_natoctrev # Aggregate other cost ticket payments #
+natoctrev=(1.0/NATAGGOCT)*sum(q,REGDEST,AGGOCT(q)*octrev(q));
+
+E_nattaxrevm # Aggregate tariff revenue #
+nattaxrevm=(1.0/NATAGGTAXM)*sum(q,REGDEST,AGGTAXM(q)*taxrevm(q));
+
+! Changed ! ! +NATAGGCTAX*natcarbontax ? !
+E_nattaxind # Aggregate value of indirect taxes #
+nattaxind=(1.0/NATAGGTAX)*(NATAGGTAX1*nattaxrev1+NATAGGTAX2*nattaxrev2
++NATAGGTAX3*nattaxrev3+NATAGGTAX4*nattaxrev4+NATAGGTAX5*nattaxrev5
++NATAGGTAX8*nattaxrev8+NATAGGTAXM*nattaxrevm);
+
+E_natgdpinc # Aggregate nominal GDP from income side #
+natgdpinc=(1.0/NATGDPIN)*(NATAGGLND*natlndrev+NATAGGCAP*natcaprev
++ NATAGGLAB*natlabrev+NATAGGOCT*natoctrev+NATAGGTAX*nattaxind);
+
+E_natkt # Aggregate usage of capital, rental weights #
+natkt=(1.0/NATAGGCAP)*sum(q,REGDEST,AGGCAP(q)*kt(q));
+
+E_natl # Aggregate employment, wage bill weights #
+natl=(1.0/NATAGGLAB)*sum(q,REGDEST,AGGLAB(q)*l(q));
+
+E_natZ_TOT # Aggregate output, value-added weights #
+NATTOTFAC*natz_tot=sum(q,REGDEST,TOTFAC(q)*z_tot(q));
+
+E_natZ # Aggregate output, value-added weights #
+(all,j,IND)
+(TINY+NATTOTFACIND(j))*natz(j)=sum(q,REGDEST,TOTFACIND(j,q)*z(j,q));
+
+E_natc # Aggregate nominal consumption #
+NATAGGCON*natc=sum(q,REGDEST,AGGCON(q)*c(q));
+
+E_natcr # Aggregate real consumption #
+NATAGGCON*natcr=sum(q,REGDEST,AGGCON(q)*cr(q));
+
+E_natin # Total nominal investment #
+natin=natir+natxi2;
+
+E_natir # Total real investment #
+natir=(1.0/NATAGGINV)*sum(j,IND,NATINVEST(j)*naty(j));
+
+E_natothnom5 # Aggregate nominal value of regional government demand #
+natothnom5=natothreal5+natxi5;
+
+E_natothnom7 # Aggregate nominal value - inventories #
+natothnom7=natothreal7+natxi7;
+
+! new !
+E_natothnom8 # Aggregate nominal value of ISFLF demand #
+natothnom8=natothreal8+natxi8;
+
+E_natothreal5 # Aggregate real regional government demand #
+natothreal5=(1.0/NATAGGOTH5)*sum(q,REGDEST,AGGOTH5(q)*othreal5(q));
+
+E_natothreal7 # Aggregate real inventories #
+[TINY+NATAGGOTH7]*natothreal7=
+100*(sum(i,COM,sum(s,REGSOURCE,x7a(i,s))));
+
+! new !
+E_natothreal8 # Aggregate real ISFLF demand #
+NATAGGOTH8*natothreal8=
+sum(i,COM,sum(s,allsource,sum(q,REGDEST,PVAL8A(i,s,q)*x8a(i,s,q))));
+
+E_natexport # Foreign currency value of exports #
+natexport=(1.0/NATAGGEXP)*sum(s,REGSOURCE,AGGEXP(s)*export(s));
+
+E_natexpvol # Export volume index #
+natexpvol=natexport+natphi-natxi4;
+
+E_natimp # Foreign currency value of imports #
+natimp=(1.0/NATAGGIMP)*sum(i,COM,NATIMPCOST(i)*[pm(i)+ natx0imp(i)]);
+
+E_natimpvol # Import volume index #
+natimpvol=natimp+natphi-natxim;
+
+E_natgdpexp # Aggregate nominal GDP from expenditure side #
+natgdpexp=(1.0/NATGDPEX)*(NATAGGCON*natc+NATAGGINV*natin
++NATAGGOTH5*natothnom5+NATAGGOTH7*natothnom7
++NATAGGOTH8*natothnom8
++NATAGGEXP*(natexport+natphi)-NATAGGIMP*(natimp+natphi));
+
+E_natgdpreal # Real GDP, expenditure side #
+natgdpreal=natgdpexp-natxigdp;
+
+E_natdelb # Balance of trade in HRK #
+natdelb=NATAGGEXP*natexport-NATAGGIMP*natimp;
+
+! Subsection 3.2.16: Regional and national price indices !
+
+VARIABLE
+
+natxi3 # Consumer price index #;
+
+natximp0 # Duty-paid imports price index #;
+
+(all,q,REGDEST)
+ximp0(q) # Duty-paid imports price index #;
+
+(all,i,COM)
+pwsq(i) # Price index - interregional trade by commodity #;
+
+pw # Price index - interregional trade: total #;
+
+(all,q,REGDEST)
+wp_eff(q) # World price effect on tot_dom #;
+
+(all,q,REGDEST)
+exp_eff(q) # Export price effect on tot_dom #;
+
+(all,q,REGDEST)
+imp_eff(q) # Import price effect on tot_dom #;
+
+(all,q,REGDEST)
+tot_region(q) # Check on tot domestic #;
+
+nattot # Economy-wide terms of trade #;
+
+(all,i,COM)(all,s,REGSOURCE) (all,q,REGDEST)
+psfloj(i,s,q) # Price index - interregional trade flows by commodity #;
+
+(all,i,COM)(all,s,REGSOURCE)
+psexpj(i,s) # Price index - interregional exports by commodity #;
+
+(all,i,COM)(all,q,REGDEST)
+psimpj(i,q) # Price index - interregional imports by commodity #;
+
+EQUATION
+
+E_xi3 # Consumer price index #
+(all,q,REGDEST)
+xi3(q)=(1.0/AGGCON(q))*sum(i,COM,sum(s,ALLSOURCE,PVAL3A(i,s,q)*p3a(i,s,q)));
+
+E_natxi3 # Consumer price index #
+NATAGGCON*natxi3=sum(q,REGDEST,AGGCON(q)*xi3(q));
+
+E_xi2 # Investment price index #
+(all,q,REGDEST)
+xi2(q)=(1.0/AGGINV(q))*sum(j,IND,INVEST(j,q)*pi(j,q));
+
+E_natxi2 # Investment price index #
+NATAGGINV*natxi2=sum(q,REGDEST,AGGINV(q)*xi2(q));
+
+E_xi4 # Exports price index #
+(all,q,REGDEST)
+xi4(q)-natphi=(1.0/AGGEXP(q))*sum(i,COM,PVAL4R(i,q)*p4r(i,q));
+
+E_natxi4 # Exports price index #
+natxi4=(1.0/NATAGGEXP)*sum(q,REGDEST,AGGEXP(q)*xi4(q));
+
+E_xi5 # Regional government demand price index #
+(all,q,REGDEST)
+xi5(q)=(1.0/AGGOTH5(q))*sum(i,COM,sum(s,ALLSOURCE,PVAL5A(i,s,q)*p5a(i,s,q)));
+
+E_natxi5 # National aggregate regional government demand price index #
+natxi5=(1.0/NATAGGOTH5)*sum(q,REGDEST,AGGOTH5(q)*xi5(q));
+
+E_natxi7 # National price index - inventories #
+NATAGGOTH7*natxi7=
+sum(i,COM,sum(s,REGSOURCE,BAS7(i,s)*p0a(i,s)));
+
+! new !
+E_xi8 # Price index for ISFLF demand #
+(all,q,REGDEST)
+xi8(q)=(1.0/AGGOTH8(q))*sum(i,com, sum(s,ALLSOURCE,PVAL8A(i,s,q)*p8a(i,s,q)));
+
+E_natxi8 # National price index ISFLF demand #
+NATAGGOTH8*natxi8=
+sum(i,COM,sum(s,allsource,sum(q,REGDEST,PVAL8A(i,s,q)*p8a(i,s,q))));
+
+E_natxigdp # Price index for GDP, expenditure side #
+natxigdp =(1.0/NATGDPEX)*(NATAGGCON*natxi3+NATAGGINV*natxi2+NATAGGOTH5*natxi5
++NATAGGOTH7*natxi7+NATAGGOTH8*natxi8+
++NATAGGEXP*natxi4-NATAGGIMP*natxim);
+
+E_xim # Imports price index #
+(all,q,REGDEST)
+xim(q)-natphi=(1.0/AGGIMP(q))*sum(i,COM,IMPCOST(i,q)*pm(i));
+
+E_natxim # National imports price index #
+natxim=(1.0/NATAGGIMP)*sum(q,REGDEST,AGGIMP(q)*xim(q));
+
+E_ximp0 # Duty-paid imports price index #
+(all,q,REGDEST)
+ximp0(q)=(1.0/[AGGIMP(q)+AGGTAXM(q)])*sum(i,COM,IMPORTS(i,q)*p0a(i,"foreign"));
+
+E_natximP0 # National duty-paid imports price index #
+natximp0=(1.0/[NATAGGIMP+NATAGGTAXM])*sum(i,COM,NATIMPORTS(i)*p0a(i,"foreign"));
+
+E_psflo # Price index - interregional trade flows #
+(all,s,REGSOURCE) (all,q,REGDEST)
+(TINY+C_XSFLO(s,q))*psflo(s,q)=sum(i,com,sum(j,IND,BAS1(i,s,j,q)*p0a(i,s)))
++sum(i,com,sum(j,IND,BAS2(i,s,j,q)*p0a(i,s)))+sum(i,com,BAS3(i,s,q)*p0a(i,s))
++sum(i,com,BAS5(i,s,q)*p0a(i,s))+sum(i,com,BAS8(i,s,q)*p0a(i,s));
+
+E_psexp # Price index - interregional exports #
+(all,s,REGSOURCE)
+(TINY+C_XSEXP(s))*psexp(s)=sum(q,REGDEST,C_XSFLO(s,q)*psflo(s,q))
+-C_XSFLO(s,s)*psflo(s,s);
+
+E_psimp # Price index - interregional imports #
+(all,q,REGDEST)
+(TINY+C_XSIMP(q))*psimp(q)=sum(s,REGSOURCE,C_XSFLO(s,q)*psflo(s,q))
+-C_XSFLO(q,q)*psflo(q,q);
+
+E_psfloj # Price index - interregional trade flows by commodity #
+(all,i,COM)(all,s,REGSOURCE)(all,q,REGDEST)
+(TINY+C_XSFLOJ(i,s,q))*psfloj(i,s,q)=sum(j,IND,BAS1(i,s,j,q)*p0a(i,s))
++sum(j,IND,BAS2(i,s,j,q)*p0a(i,s))+BAS3(i,s,q)*p0a(i,s)+BAS5(i,s,q)*p0a(i,s)
++BAS8(i,s,q)*p0a(i,s);
+
+E_psexpj # Price index - interregional exports by commodity #
+(all,i,COM)(all,s,REGSOURCE)
+(TINY+C_XSEXPJ(i,s))*psexpj(i,s)=sum(q,REGDEST,C_XSFLOJ(i,s,q)*psfloj(i,s,q))
+-C_XSFLOJ(i,s,s)*psfloj(i,s,s);
+
+E_psimpj # Price index - interregional imports by commodity #
+(all,i,COM)(all,q,REGDEST)
+(TINY+C_XSIMPJ(i,q))*psimpj(i,q)=sum(s,REGSOURCE,C_XSFLOJ(i,s,q)*psfloj(i,s,q))
+-C_XSFLOJ(i,q,q)*psfloj(i,q,q);
+
+! Changed - included TINY in deniminator !
+E_pwsq # Price index - interregional trade by commodity #
+(all,i,COM)
+(TINY+C_XSFLOJSQ(i))*pwsq(i)=
+sum(s,REGSOURCE,sum(q,REGDEST,C_XSFLOJ(i,s,q)*psfloj(i,s,q)));
+
+E_pw # Price index - interregional trade: total #
+C_XSFLOJSQI*pw=sum(i,COM,C_XSFLOJSQ(i)*pwsq(i));
+
+E_wp_eff # World price effect on tot_dom #
+(all,q,REGDEST)
+wp_eff(q)=sum(i,COM,(SX(i,q)-SM(i,q))*(pwsq(i)-pw));
+
+E_exp_eff # Export price effect on tot_dom #
+(all,s,REGSOURCE)
+exp_eff(s)=sum(i,COM,SX(i,s)*(psexpj(i,s)-pwsq(i)));
+
+E_imp_eff # Import price effect on tot_dom #
+(all,q,REGDEST)
+imp_eff(q)=sum(i,COM,SM(i,q)*(psimpj(i,q)-pwsq(i)));
+
+E_tot_st # Check on tot domestic #
+(all,q,REGDEST)
+tot_region(q)=wp_eff(q)+exp_eff(q)-imp_eff(q);
+
+E_nattot # National terms of trade #
+nattot=natxi4-natxim;
+
+! Subsection 3.2.17: Money wage settings !
+
+VARIABLE
+
+(all,j,IND)(all,q,REGDEST)
+pwagei(j,q) # Nominal wage rates #;
+
+(all,j,IND)(all,q,REGDEST)
+arpri(j,q) # Payroll tax adjustment factor #;
+
+natfwage # Overall wage shifter #;
+
+(all,q,REGDEST)
+fwage(q) # Overall real wage shifter #;
+
+(all,j,IND)(all,q,REGDEST)
+fwagei(j,q) # Industry-specific wage shifter #;
+
+(all,q,REGDEST)
+pwage(q) # Region-wide nominal wage received by workers #;
+
+(all,q,REGDEST)
+pwage_p(q) # Region-wide nominal wage paid by producers #;
+
+natrealwage # National consumer real wage #;
+
+(all,q,REGDEST)
+wage_diff(q) # Regional real wage differential #;
+
+EQUATION
+
+E_p1laboi # Payroll tax adjustmemt #
+(all,j,IND)(all,q,REGDEST) (all,m,OCC)
+p1laboi(j,q,m)=pwagei(j,q)+arpri(j,q);
+
+E_pwagei # Flexible setting of money wages #
+(all,j,IND)(all,q,REGDEST)
+pwagei(j,q)=natxi3+natfwage+fwage(q)+fwagei(j,q);
+
+E_pwage # Region-wide nominal wage received by workers #
+(all,q,REGDEST)
+AGGLAB(q)*pwage(q)=sum(j,IND,LABOR(j,q)*pwagei(j,q));
+
+E_pwage_p # Region-wide nominal wage paid by producers #
+(all,q,REGDEST)
+AGGLAB(q)*pwage_p(q)=sum(j,IND,LABOR(j,q)*p1lab(j,q));
+
+E_natrealw # National real wage: consumer #
+NATAGGLAB*natrealwage=
+sum(j,IND,sum(q,REGDEST,LABOR(j,q)*(natfwage+fwage(q)+fwagei(j,q))));
+
+E_wage_diff # Region real-wage diff #
+(all,q,REGDEST)
+wage_diff(q)=pwage(q)-natxi3-natrealwage;
+
+! Subsection 3.2.18: Miscellaneous definitions of factor prices !
+
+VARIABLE
+
+natp1cap # Aggregate nominal capital rental #;
+
+natpwage # Aggregate nominal wages to workers #;
+
+natpwage_p # Aggregate nominal wages paid by producers #;
+
+natrwage_w # National real wages for workers: deflated by CPI #;
+
+natrwage_p # National real wages for producers: deflated by GDP deflator #;
+
+natxiplpk # Relative prices of labor and capital #;
+
+(all,q,REGDEST)
+reg_p1cap(q)  # Regional rental price of capital #;
+
+(all,q,REGDEST)
+xiy_r(q) # Regional GDP deflator #;
+
+(all,q,REGDEST)
+realwage_p(q) # Real wages for producers: deflated by GDP def. #;
+
+(all,q,REGDEST)
+realwage_w(q) # Real wages for workers: deflated by CPI #;
+
+(all,q,REGDEST)
+totdom(q) # Domestic terms of trade #;
+
+(all,q,REGDEST)
+totfor(q) # Foreign terms of trade #;
+
+(all,q,REGDEST)
+r0_tot(q) # Regional aggregate rate of return #;
+
+(all,j,IND)(all,q,REGDEST)
+r0(j,q) # Current rates of return on capital #;
+
+(all,j,IND)(all,q,REGDEST)
+xiplpk_ind(j,q) # Index of ratio of price of labor to price of capital #;
+
+(all,q,REGDEST)
+xiplpk(q) # Index of relative price of labor and capital #;
+
+EQUATION
+
+E_natp1cap # Aggregate nominal capital rentals #
+natp1cap=natcaprev-natkt;
+
+E_natpwage # Aggregate nominal wages of workers #
+NATAGGLAB*natpwage=sum(q,REGDEST,AGGLAB(q)*pwage(q));
+
+E_natpwage_p # Aggregate nominal wages paid by producers #
+NATAGGLAB*natpwage_p=sum(q,REGDEST,AGGLAB(q)*pwage_p(q));
+
+E_natrwage_w # National real wages for workers: deflated by CPI #
+natrwage_w=natrealwage;
+
+E_natrwage_p # National real wages for producers #
+natrwage_p=natpwage_p-natxigdp;
+
+E_natxiplpk # Relative prices of labor and capital #
+natxiplpk=natpwage_p-natp1cap;
+
+E_reg_p1cap # Regional rental price of capital #
+(all,q,REGDEST)
+reg_p1cap(q)=caprev(q)-kt(q);
+
+E_realwage_w # Real wages for workers: deflated by CPI #
+(all,q,REGDEST)
+realwage_w(q)=pwage(q)-xi3(q);
+
+E_realwage_p # Real wages for producers: deflated by GDP deflator #
+(all,q,REGDEST)
+realwage_p(q)=pwage_p(q)-xiy_r(q);
+
+E_totdom # Domestic terms of trade #
+(all,q,REGDEST)
+totdom(q)=psexp(q)-psimp(q);
+
+E_totfor # Foreign terms of trade #
+(all,q,REGDEST)
+totfor(q)=xi4(q)-xim(q);
+
+E_r0_tot # Regional industry-aggregate rate of return #
+(all,q,REGDEST)
+AGGCAP(q)*r0_tot(q)=sum(j,IND,CAPITAL(j,q)*r0(j,q));
+
+E_xiplpk_ind  # Relative prices of labor and capital #
+(all,j,IND)(all,q,REGDEST)
+xiplpk_ind(j,q)=p1lab(j,q)-p1cap(j,q);
+
+E_xiplpk # Index of relative price of labor and capital #
+(all,q,REGDEST)
+xiplpk(q)=pwage_p(q)-reg_p1cap(q);
+
+! Subsection 3.2.19: Employment Aggregates !
+
+VARIABLE
+
+(all,m,OCC)(all,q,REGDEST)
+lambda(m,q) # Employment by occupation #;
+
+(all,m,OCC)
+natlambda(m)  # Employment in occupation M #;
+
+EQUATION
+
+E_lambda # Demand for labor by occupation #
+(all,m,OCC)(all,q,REGDEST)
+(LAB_OCC(m,q)+TINY)*lambda(m,q)=sum(j,IND,LAB_OCC_IND(m,j,q)*x1laboi(j,q,m));
+
+E_natlambda # National demand for labor by occupation #
+(all,m,OCC)
+(NATLAB_OCC(m)+TINY)*natlambda(m)=sum(q,REGDEST,LAB_OCC(m,q)*lambda(m,q));
+
+VARIABLE
+
+(change)(all,i,COM)(all,s,REGSOURCE) delV7(i,s) # Value of inventories #;
+
+EQUATION
+
+E_delV7 # Update formula for stocks # (all,i,COM)(all,s,REGSOURCE)
+delV7(i,s) = 0.01*BAS7(i,s)*p0a(i,s);
+
+! Section 4: Update statements for the CGE core module !
+
+UPDATE
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+BAS1(i,s,j,q)=p0a(i,s)*x1a(i,s,j,q);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+BAS2(i,s,j,q)=p0a(i,s)*x2a(i,s,j,q);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+BAS3(i,s,q)=p0a(i,s)*x3a(i,s,q);
+
+(all,i,COM)(all,s,REGSOURCE)
+BAS4(i,s)=p0a(i,s)*x4r(i,s);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+BAS5(i,s,q)=p0a(i,s)*x5a(i,s,q);
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+BAS8(i,s,q)=p0a(i,s)*x8a(i,s,q);
+
+(change)(all,i,COM)(all,s,REGSOURCE)BAS7(i,s)=delV7(i,s);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)(all,r,MARGCOM)
+MAR1(i,s,j,q,r)=p0a(r,q)*x1marg(i,s,j,q,r);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)(all,r,MARGCOM)
+MAR2(i,s,j,q,r)=p0a(r,q)*x2marg(i,s,j,q,r);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+MAR3(i,s,q,r)=p0a(r,q)*x3marg(i,s,q,r);
+
+(all,i,COM)(all,s,REGSOURCE)(all,r,MARGCOM)
+MAR4(i,s,r)= p0a(r,s)*x4marg(i,s,r);
+
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+MAR5(i,s,q,r)=p0a(r,q)*x5marg(i,s,q,r);
+
+! new !
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)(all,r,MARGCOM)
+MAR8(i,s,q,r)=p0a(r,s)*x8marg(i,s,q,r);
+
+(explicit)(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+TAX1(i,s,j,q)=TAX1(i,s,j,q)+[BAS1(i,s,j,q)*deltax1(i,s,j,q)
++TAX1(i,s,j,q)*{x1a(i,s,j,q)+p0a(i,s)}]/100;
+
+(explicit)(all,i,COM)(all,s,ALLSOURCE)(all,j,IND)(all,q,REGDEST)
+TAX2(i,s,j,q)=TAX2(i,s,j,q)+[BAS2(i,s,j,q)*deltax2(i,s,j,q)
++TAX2(i,s,j,q)*{x2a(i,s,j,q)+p0a(i,s)}]/100;
+
+(explicit)(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+TAX3(i,s,q)=TAX3(i,s,q)+[BAS3(i,s,q)*deltax3(i,s,q)
++TAX3(i,s,q)*{x3a(i,s,q)+p0a(i,s)}]/100;
+
+(explicit)(all,i,COM)(all,s,REGSOURCE)
+TAX4(i,s)=TAX4(i,s)+[BAS4(i,s)*deltax4(i,s)
++TAX4(i,s)*{x4r(i,s)+p0a(i,s)}]/100;
+
+(explicit)(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+TAX5(i,s,q)=TAX5(i,s,q)+[BAS5(i,s,q)*deltax5(i,s,q)
++TAX5(i,s,q)*{x5a(i,s,q)+p0a(i,s)}]/100;
+
+! new !
+(explicit)(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+TAX8(i,s,q)=TAX8(i,s,q)+[BAS8(i,s,q)*deltax8(i,s,q)
++TAX8(i,s,q)*{x8a(i,s,q)+p0a(i,s)}]/100;
+
+(all,m,OCC)(all,j,IND)(all,q,REGDEST)
+LAB_OCC_IND(m,j,q)=p1laboi(j,q,m)*x1laboi(j,q,m);
+
+(all,j,IND)(all,q,REGDEST)
+CAPITAL(j,q)=p1cap(j,q)*curcap(j,q);
+
+(all,j,IND)(all,q,REGDEST)
+LAND(j,q)=p1land(j,q)*n(j,q);
+
+(all,j,IND)(all,q,REGDEST)
+OTHCOST(j,q)=p1oct(j,q)*x1oct(j,q);
+
+! New !
+(change)(all,j,IND)(all,q,REGDEST)
+CTAX(j,q)=delV1CTX(j,q);
+
+(change)(all,i,COM)(all,q,REGDEST)
+TARIFF(i,q)=TARIFF(i,q)*{pm(i)+natphi+x0imp(i,q)}/100
++IMPORTS(i,q)*powtaxm(i)/100;
+
+(explicit)(all,j,IND)(all,q,REGDEST)
+QCOEF(j,q)=QCOEF(j,q)*{1.0+[1.0-QCOEF(j,q)]*[p1cap(j,q)-pi(j,q)]/100};
+
+(explicit)(all,q,REGDEST)
+FRISCH(q)=FRISCH(q)*(1.0+[luxexp(q)-c(q)]/100.0);
+
+(all,i,COM)(all,q,REGDEST)
+DELTA(i,q)=a3lux(i,q);
+
+! Section 4: CAPITAL ACCUMULATION AND INVESTMENT MODULE !
+
+! Subsection 4.1: Coefficient declarations for the capital accumulation and
+investment module !
+
+COEFFICIENT
+
+(all,j,IND)(all,q,REGDEST)
+VALKT(j,q) # Assest-value of capital stock in period T #;
+
+(PARAMETER)(all,j,IND)
+DEP(j) # Depreciation factor, uniform across regions #;
+
+(integer)
+FRED # Switch variable, forecast to comparative statatic #;
+
+(integer)
+PRIOD # Number of years in a forecast period #;
+
+K_TERM # A constant in T+1 capital equation #;
+
+(all,j,IND)(all,q,REGDEST)
+VALK_0(j,q) # Base-year asset value of capital stock #;
+
+(all,j,IND)(all,q,REGDEST)
+VALK_T1(j,q) # Value of capital stock in period T+1 #;
+
+(all,j,IND)(all,q,REGDEST)
+INVEST_0(j,q) # Base-year value of investment #;
+
+READ
+
+VALKT from file MDATA header "VALK";
+
+DEP from file MDATA header "DPRC";
+
+FRED from file Terminal header "FRED";
+
+PRIOD from file Terminal header "PROD";
+
+FORMULA
+
+K_TERM=1+(1/PRIOD);
+
+(initial)(all,j,IND)(all,q,REGDEST)
+VALK_0(j,q)=VALKT(j,q);
+
+(initial)(all,j,IND)(all,q,REGDEST)
+VALK_T1(j,q)=VALKT(j,q);
+
+(initial)(all,j,IND)(all,q,REGDEST)
+INVEST_0(j,q)=INVEST(j,q);
+
+VARIABLE
+
+(change)(all,j,IND)(all,q,REGDEST)
+delf_rate(j,q) # Shifter in capital_accum equation #;
+
+(change)
+delkfudge # Dummy variable to switch on capital accumulation equation #;
+
+(all,j,IND)(all,q,REGDEST)
+f_rate_xx(j,q) # Shifter, rate of return equation #;
+
+(all,j,IND)(all,q,REGDEST)
+curcap_t1(j,q) # Capital stock in period T+1 #;
+
+natr_tot # Average rate of return #;
+
+EQUATION
+
+E_r0 # Definition of rates of return to capital #
+(all,j,IND)(all,q,REGDEST)
+r0(j,q)=QCOEF(j,q)*(p1cap(j,q)-pi(j,q));
+
+E_f_rate_xx # Capital growth rates related to rates of return #
+(all,j,IND)(all,q,REGDEST)
+(r0(j,q)-natr_tot)=BETA_R(j,q)*[curcap(j,q)-kt(q)]+f_rate_xx(j,q);
+
+E_naty # Total real investment #
+(all,j,IND)
+(TINY+NATINVEST(j))*naty(j)=sum(q,REGDEST,INVEST(j,q)*y(j,q));
+
+E_curcapT1 # Capital stock in period T+1 #
+(all,j,IND)(all,q,REGDEST)
+IF(FRED ne PRIOD,curcap_t1(j,q)-curcap(j,q))
++IF(FRED eq PRIOD,curcap_t1(j,q)-K_TERM*curcap(j,q))=0;
+
+E_yT # Investment in period T #
+(all,j,IND)(all,q,REGDEST)
+IF(FRED ne PRIOD,curcap(j,q)-y(j,q)-100*delf_rate(j,q))
++IF(FRED eq PRIOD,+VALKT(j,q)*DEP(j)*curcap(j,q)+(TINY+INVEST(j,q))*y(j,q)
+-100*(VALK_0(j,q)*(1-DEP(j))-INVEST_0(j,q))*delkfudge
++100*delf_rate(j,q)-VALK_T1(j,q)*curcap_t1(j,q))=0;
+
+UPDATE
+
+(all,j,IND)(all,q,REGDEST)
+VALKT(j,q)=pi(j,q)*curcap(j,q);
+
+(all,j,IND)(all,q,REGDEST)
+VALK_T1(j,q)=pi(j,q)*curcap_t1(j,q);
+
+! Section 11: LABOR MARKET AND REGIONAL MIGRATION MODULE !
+
+COEFFICIENT
+
+(all,q,REGDEST)
+C_FM(q) # Regional foreign migration #;
+
+(all,q,REGDEST)
+C_EMPLOY(q) # Regional employment: persons #;
+
+(all,q,REGDEST)
+C_LABSUP(q) # Regional labor supply #;
+
+(all,q,REGDEST)
+C_FM_0(q) # Base-year regional foreign migration #;
+
+(all,q,REGDEST)
+C_G(q) # Regional natural population growth (births-deaths) #;
+
+(all,q,REGDEST)
+C_G_0(q) # Base-year regional natural population growth #;
+
+C_NATLABSUP # National labor supply #;
+
+C_NATEMPLOY # National employment: persons #;
+
+C_PA2 # Coefficient in population accumulation equation #;
+
+(all,q,REGDEST)
+C_POP(q) # Regional population #;
+
+(all,q,REGDEST)
+C_PR1(q) # Constant term in regional population accumulation equation #;
+
+(all,q,REGDEST)
+C_RM(q) # Interregional migration #;
+
+(all,q,REGDEST)
+C_RM_0(q) # Base-year interregional migration #;
+
+(all,q,REGDEST)
+C_WPOP(q) # Regional population of working age #;
+
+READ
+
+C_FM from file PDATA header "RFRM";
+
+C_G from file PDATA header "RGRO";
+
+C_POP from file PDATA header "RPOP";
+
+C_RM from file PDATA header "RRGM";
+
+C_WPOP from file PDATA header "RWAP";
+
+C_EMPLOY from file PDATA header "REMP";
+
+C_LABSUP from file PDATA header "RLBS";
+
+FORMULA
+
+(initial)(all,q,REGDEST)
+C_FM_0(q)=C_FM(q);
+
+(initial)(all,q,REGDEST)
+C_G_0(q)=C_G(q);
+
+C_NATEMPLOY=sum(q,REGDEST,C_EMPLOY(q));
+
+C_NATLABSUP=sum(q,REGDEST,C_LABSUP(q));
+
+C_PA2=50*(PRIOD+1);
+
+(initial)(all,q,REGDEST)
+C_RM_0(q)=C_RM(q);
+
+(all,q,REGDEST)
+C_PR1(q)=100*PRIOD*(C_RM_0(q)+C_FM_0(q)+C_G_0(q));
+
+DISPLAY
+
+C_NATEMPLOY;
+
+C_NATLABSUP;
+
+VARIABLE
+
+(change)
+del_natfm # Ordinary change in foreign migration in Croatia #;
+
+(change)
+del_natg # Ordinary change in natural pop. (births-deaths) in Croatia #;
+
+(change)
+del_natunr # P-point change in economy-wide unemployment rate #;
+
+(change)
+delf_rm # Shifter in equation E_RM_Addup #;
+
+del_frmt0 # Shifter for regional migration from forecasts in T #;
+
+(change)
+delf_rm_0 # Shifter in equation E_RM_0 #;
+
+(change)
+delpopfudget # Fudge factor in equation E_popT #;
+
+natlabsup # National labor supply #;
+
+(all,q,REGDEST) util_diff(q) # Utility differentials #;
+
+agg_util # National average utility #;
+
+(all,q,REGDEST)
+labsup(q) # Labor supply #;
+
+(all,q,REGDEST) pop(q) # Regional population #;
+
+natemploy # National employment #;
+
+(change)(all,q,REGDEST)
+del_fgt(q) # Shift in natural growth of regional population in year T #;
+
+(change)(all,q,REGDEST)
+del_fm(q) # Ordinary changes in foreign migration: regions #;
+
+(change)(all,q,REGDEST)
+del_fmt(q) # Ordinary change in foreign migration for update #;
+
+(change)(all,q,REGDEST)
+del_fpop1t(q) # Shift in regional population in year T-1 #;
+
+(change)(all,q,REGDEST)
+del_g(q) # Ordinary changes in natural pop. (births-deaths): regions #;
+
+(change)(all,q,REGDEST)
+del_gt(q) # Ordinary change in nat. growth in regional pop. for update #;
+
+(change)(all,q,REGDEST)
+del_pop1t(q) # Ordinary change in regional population in year T-1 #;
+
+(change)(all,q,REGDEST)
+del_rm(q) # Ordinary change in interregional migration #;
+
+(change)(all,q,REGDEST)
+del_rm_0(q) # IBGE forecast of interregional migration #;
+
+(change)(all,q,REGDEST)
+del_rmt(q) # Ordinary change in regional migration for update #;
+
+(change)(all,q,REGDEST)
+del_rmt0(q) # Ordinary change in regional migration: forecasts #;
+
+(change)(all,q,REGDEST)
+delrpfudge(q) # Dummies in equation E_del_RM #;
+
+(change)(all,q,REGDEST)
+del_unr(q) # Percentage-point changes in regional unemployment rate #;
+
+(all,q,REGDEST)
+employ(q) # Regional employment: persons #;
+
+(all,q,REGDEST)
+f_l(q) # Shifter in regional employment #;
+
+(all,q,REGDEST)
+f_pop(q) # Shifter in equation E_del_RM #;
+
+(all,q,REGDEST)
+f_wpop(q) # Shifter in equation E_WPop #;
+
+(all,q,REGDEST)
+f_qhous(q) # Shifter in equation E_Pop_interf #;
+
+(all,q,REGDEST)
+pr(q) # Regional workforce participation rate #;
+
+(all,q,REGDEST)
+f_util(q) # shift #;
+
+(all,q,REGDEST)
+wpop(q) # Regional population of working age #;
+
+EQUATION
+
+E_delNatFM # Foreign mig. nationally is sum of foreign mig. to regions #
+del_natfm=sum(q,REGDEST,del_fm(q));
+
+E_delnatg # Natural pop. nationally is sum of natural pop. of regions #
+del_natg=sum(q,REGDEST,del_g(q));
+
+E_natlabsup # National labor supply #
+C_NATLABSUP*natlabsup=sum(q,REGDEST,C_labsup(q)*labsup(q));
+
+E_Natemploy # National employment #
+C_NATEMPLOY*natemploy=sum(q,REGDEST,C_EMPLOY(q)*employ(q));
+
+E_NatUnr # P-point change in natural unemployment rate #
+C_NATLABSUP*del_natunr=C_NATEMPLOY*(natlabsup-natemploy);
+
+E_rempl_interf # Interface employ and l #
+(all,q,REGDEST)
+l(q)=employ(q)+f_l(q);
+
+E_del_labsup # P-point changes in regional unemployment rates #
+(all,q,REGDEST)
+C_LABSUP(q)*del_unr(q)=C_EMPLOY(q)*(labsup(q)-employ(q));
+
+E_wpop # Regional labor supply #
+(all,q,REGDEST)
+labsup(q)=pr(q)+wpop(q);
+
+E_Pop # Regional working age population #
+(all,q,REGDEST)
+wpop(q)=pop(q)+f_wpop(q);
+
+E_del_RM # Accumulation of regional population #
+(all,q,REGDEST)
+C_POP(q)*pop(q)=C_PR1(q)*delrpfudge(q)
++C_PA2*(del_rm(q)+del_fm(q)+del_g(q))+f_pop(q);
+
+E_pop_interf # Interface pop and qhous #
+(all,q,REGDEST)
+qhous(q)=pop(q)+f_qhous(q);
+
+E_RM_addup # Adding-up condition on regional migration #
+delf_rm=sum(q,REGDEST,del_rm(q));
+
+E_RM_0 # Population forecasts can drive interregional migration #
+(all,q,REGDEST)
+del_rm(q)=del_rm_0(q)+delf_rm_0;
+
+E_popt # Update the regional population in final year #
+(all,q,REGDEST)
+(C_POP(q)/100)*pop(q)=del_pop1t(q)+del_gt(q)+del_fmt(q)+del_rmt(q)
++(C_G_0(q)+C_FM_0(q)+C_RM_0(q))*delpopfudget;
+
+E_pop1t # Update the regional population in final year in 2nd closure #
+(all,q,REGDEST)
+C_POP(q)*pop(q)=100*del_pop1t(q)+(C_POP(q)/PRIOD)*pop(q)+del_fpop1t(q);
+
+E_GT # Update the natural growth (change) in final year T #
+(all,q,REGDEST)
+100*del_gt(q)=C_G_0(q)*pop(q)+100*C_POP(q)*del_fgt(q);
+
+E_RMT0 # Adjustment to regional mig. to ensure adding-up condition #
+(all,q,REGDEST)
+del_rmt(q)=del_rmt0(q)+del_frmt0;
+
+E_addup # Adding-up condition #
+Sum(q,REGDEST,del_rmt(q))=0;
+
+E_AGG_util # Average utility #
+agg_util=
+(1.0/(sum(q, regdest, AGGLAB(q))))*sum(q,regdest, AGGLAB(q)*utility(q));
+
+E_util_diff # Utility differentials #
+(all, q, regdest)
+util_diff(q)=utility(q)-agg_util+f_util(q);
+
+UPDATE
+
+(all,q,REGDEST)
+C_POP(q)=pop(q);
+
+(change)(all,q,REGDEST)
+C_RM(q)=del_rmt(q);
+
+(change)(all,q,REGDEST)
+C_FM(q)=del_fmt(q);
+
+(change)(all,q,REGDEST)
+C_G(q)=del_gt(q);
+
+(all,q,REGDEST)
+C_EMPLOY(q)=employ(q);
+
+(all,q,REGDEST)
+C_LABSUP(q)=labsup(q);
+
+(all,q,REGDEST)
+C_WPOP(q)=wpop(q);
+
+UPDATE
+!(CMODULE) CO2 generation LEVEL!
+(all,j,IND)(all,q,REGDEST)
+CARBON(j,q)=xcarbon(j,q);
+
+! Section 5: GROSS REGIONAL PRODUCT !
+
+COEFFICIENT
+
+(all,q,REGDEST)
+GRP(q) # Gross Regonal Product #;
+
+! new !
+GRP_ADRIATIC # Gross Regonal Product - Adriatic regions #;
+
+FORMULA
+
+(all,q,REGDEST)
+GRP(q)=AGGCON(q)+AGGINV(q)+AGGOTH5(q)+AGGOTH8(q)
++C_XSEXP(q)-C_XSIMP(q)
++AGGEXP(q)-sum(i,COM,IMPORTS(i,q))
++AGGOTH7(q);
+
+! new !
+GRP_ADRIATIC=sum(q,ADRIATICDES,AGGCON(q)+AGGINV(q)+AGGOTH5(q)+AGGOTH8(q)
++C_XSEXP(q)-C_XSIMP(q)
++AGGEXP(q)-sum(i,COM,IMPORTS(i,q))
++AGGOTH7(q));
+
+VARIABLE
+
+(all,q,REGDEST)
+yr(q) # Gross Regional Product #;
+
+! new !
+yr_adriatic # Gross Regional Product - Adriatic regions #;
+
+EQUATION
+
+E_xiy_r # GRP deflator #
+(all,q,REGDEST)
+GRP(q)*xiy_r(q)=AGGCON(q)*xi3(q)+AGGINV(q)*xi2(q)
++AGGOTH5(q)*xi5(q)+AGGOTH8(q)*xi8(q)
++C_XSEXP(q)*psexp(q)-C_XSIMP(q)*psimp(q)+AGGEXP(q)*xi4(q)
+-sum(i,COM,IMPORTS(i,q))*xim(q)+AGGOTH7(q)*xi2(q);
+
+E_yr # Gross Regional Product #
+(all,q,REGDEST)
+GRP(q)*yr(q)=AGGCON(q)*cr(q)+AGGINV(q)*ir(q)
++AGGOTH5(q)*othreal5(q)+AGGOTH8(q)*othreal8(q)
++C_XSEXP(q)*xsexp(q)-C_XSIMP(q)*xsimp(q)+AGGEXP(q)*expvol(q)
+-sum(i,COM,IMPORTS(i,q))*impvol(q)+AGGOTH7(q)*ir(q);
+
+! new !
+E_yr_adriatic # Gross Regional Product - Adriatic regions #
+GRP_ADRIATIC*yr_adriatic=sum(q,ADRIATICDES,AGGCON(q)*cr(q)+AGGINV(q)*ir(q)
++AGGOTH5(q)*othreal5(q)+AGGOTH8(q)*othreal8(q)
++C_XSEXP(q)*xsexp(q)-C_XSIMP(q)*xsimp(q)+AGGEXP(q)*expvol(q)
+-sum(i,COM,IMPORTS(i,q))*impvol(q)+AGGOTH7(q)*ir(q));
+
+!(CMODULE) cgovdem(q) insert gov demand provided by CO2 tax!
+E_x5a # Regional government demand #
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+x5a(i,s,q)=f5a(i,s,q)+f5gen(q)+natf5gen+cgovdem(q)+taxind(q)-xi5(q);
+
+! new !
+E_x8a # ISFL demand #
+(all,i,COM)(all,s,ALLSOURCE)(all,q,REGDEST)
+x8a(i,s,q) =x3a(i,s,q)+f8a(i,s,q)+f8gen(q)+natf8gen;
+
+! Ommitted variables !
+
+omit a1land a1oct a2ind deltax1all deltax2all deltax3all
+delTax4all;
+
+omit deltax5all deltax8all deltaxdest deltaxsource;
+
+omit n; ! new !
+
+omit f8a f8gen natf8gen; ! new !
+
+! Substitute !
+
+substitute p1land using E_n; ! new !
+
+substitute p1oct using E_p1oct;
+
+substitute p1laboi using E_p1laboi;
+
+substitute x1oct using E_x1oct;
+
+substitute x1a using E_x1a;
+
+substitute p1o using E_p1o;
+
+substitute p1c using E_p1c;
+
+substitute x1c using E_x1c;
+
+substitute x2a using E_x2a;
+
+substitute p2o using E_p2o;
+
+substitute p2c using E_p2c;
+
+substitute x2c using E_x2c;
+
+substitute x3a using E_x3a;
+
+substitute p3o using E_p3o;
+
+substitute p3c using E_p3c;
+
+substitute x3c using E_x3c;
+
+substitute p1a using E_p1a ;
+
+substitute deltax1 using E_deltax1;
+
+substitute p2a using E_p2a;
+
+substitute deltax2 using E_deltax2;
+
+substitute p3a using E_p3a;
+
+substitute deltax3 using E_deltax3;
+
+substitute p4r using E_p4r;
+
+substitute deltax4 using E_deltax4;
+
+substitute p5a using E_p5a;
+
+substitute deltax5 using E_deltax5;
+
+! new !
+substitute deltax8 using E_deltax8;
+
+substitute x1o using E_x1o;
+
+substitute x2o using E_x2o;
+
+substitute x3o using E_x3o;
+
+substitute x1marg using E_x1marg;
+
+substitute x2marg using E_x2marg;
+
+substitute x3marg using E_x3marg;
+
+substitute x4marg using E_x4marg;
+
+substitute x5marg using E_x5marg;
+
+substitute efflab using E_efflab;
+
+substitute x1laboi using E_x1laboi;
+
+substitute lndrev using E_lndrev;
+
+substitute natlndrev using E_natlndrev;
+
+FORMULA
+
+(all,i,COM)(all,s,REGSOURCE)
+LOSTGOODS(i,s)=SALES(i,s)-MAKE_J(i,s);
+
+(all,i,COM)
+LOSTGOODS1(i)=sum(s,REGSOURCE,LOSTGOODS(i,s));
+
+(all,s,REGSOURCE)
+LOSTGOODS2(s)=sum(i,COM,LOSTGOODS(i,s));
+
+DISPLAY LOSTGOODS;
+
+DISPLAY LOSTGOODS1;
+
+DISPLAY LOSTGOODS2;
