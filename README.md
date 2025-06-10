@@ -1,6 +1,6 @@
 # BMCROG
 Replication files for the paper: "Carbon Taxation and Tourism in Transition: A General Equilibrium Analysis of Sectoral and Regional Inequality in Croatia"
-These files allow to replicate all the simulations in the paper using the source-code version of GEMPACK. Fiorst, you need to implement the .TAB file to create the model's .EXE file.
+These files allow to replicate all the simulations in the paper using the source-code version of GEMPACK. First, you need to implement the .TAB file to create the model's .EXE file.
 
 Description:
 1. BMCROG.tab - TABLO file containing the complete speficiation of the CGE model
