@@ -1,5 +1,5 @@
 # BMCROG
-Replication files for the paper: "Carbon Pricing and Tourism in Croatia: A Regional and Sectoral General Equilibrium Analysis"
+Replication files for the paper: "Carbon Pricing and Tourism in Croatia: A Regional and Sectoral General Equilibrium Analysis".
 These files allow to replicate all the simulations in the paper using the source-code version of GEMPACK. First, you need to implement the .TAB file to create the model's .EXE file.
 
 Description:
